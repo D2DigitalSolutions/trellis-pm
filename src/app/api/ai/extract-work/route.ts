@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "Validation error",
-          details: validationResult.error.errors.map((e) => ({
+          details: validationResult.error.issues.map((e) => ({
             path: e.path.join("."),
             message: e.message,
           })),
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
           error: "Failed to parse AI response",
           details: {
             provider: error.provider,
-            validationErrors: error.validationErrors.errors.map((e) => ({
+            validationErrors: error.validationErrors.issues.map((e) => ({
               path: e.path.join("."),
               message: e.message,
             })),

@@ -18,7 +18,7 @@ export const aiRouter = createTRPCRouter({
     .output(z.object({
       configured: z.string().nullable(),
       available: z.array(z.string()),
-      details: z.record(z.object({
+      details: z.record(z.string(), z.object({
         available: z.boolean(),
         reason: z.string().optional(),
       })),

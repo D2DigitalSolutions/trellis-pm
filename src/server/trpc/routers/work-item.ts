@@ -199,6 +199,13 @@ export const workItemRouter = createTRPCRouter({
               avatarUrl: true,
             },
           },
+          parentEdges: {
+            select: {
+              id: true,
+              parentId: true,
+              edgeType: true,
+            },
+          },
           _count: {
             select: {
               branches: true,

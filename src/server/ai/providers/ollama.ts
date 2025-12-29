@@ -239,7 +239,7 @@ export class OllamaProvider extends BaseProvider {
           });
           messages.push({
             role: "user",
-            content: `The JSON you provided was invalid. Validation errors:\n${error.errors
+            content: `The JSON you provided was invalid. Validation errors:\n${error.issues
               .map((e) => `- ${e.path.join(".")}: ${e.message}`)
               .join("\n")}\n\nPlease provide a corrected JSON response.`,
           });

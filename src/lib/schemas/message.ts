@@ -7,12 +7,12 @@ export const messageCreateSchema = z.object({
   role: messageRoleSchema,
   content: z.string().min(1, "Content is required"),
   userId: z.string().cuid().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export const messageUpdateSchema = z.object({
   content: z.string().min(1),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export type MessageRole = z.infer<typeof messageRoleSchema>;

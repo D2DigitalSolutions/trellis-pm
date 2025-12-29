@@ -383,13 +383,14 @@ export const branchRouter = createTRPCRouter({
 
         if (messagesToCopy.length > 0) {
           await ctx.db.message.createMany({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data: messagesToCopy.map((msg) => ({
               role: msg.role,
               content: msg.content,
-              metadata: msg.metadata,
+              metadata: msg.metadata ?? undefined,
               branchId: newBranch.id,
               userId: msg.userId,
-            })),
+            })) as any,
           });
         }
       }

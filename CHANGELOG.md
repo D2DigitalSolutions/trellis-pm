@@ -8,6 +8,64 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 29, 2024
 
+#### Dashboard UI Implementation ✅
+
+**Time:** UI Build
+
+**Changes Made:**
+
+1. **Project Sidebar (`src/components/layout/project-sidebar.tsx`)**
+   - Lists all projects from database
+   - Expandable/collapsible project sections
+   - Hierarchical work item tree within each project
+   - Color-coded icons for different work item types (EPIC, SPRINT, TASK, BUG, IDEA)
+   - Selection state for projects and work items
+
+2. **Board View (`src/components/board/`)**
+   - `BoardView` - Main board component with status columns
+   - `BoardColumn` - Individual column (TODO, DOING, DONE)
+   - `WorkItemCard` - Work item card with type badges, priority, branch/artifact counts
+   - Status-based filtering and grouping
+   - Parent work item filtering for hierarchy navigation
+
+3. **Branch Panel (`src/components/panel/branch-panel.tsx`)**
+   - Right-side drawer (Sheet component)
+   - Tabs: Branches, Chat, Artifacts
+   - Branch list with fork indicators
+   - Chat view with message history
+   - Artifacts list with type icons and version numbers
+   - Message input for conversations
+
+4. **Dashboard Layout (`src/components/layout/dashboard-layout.tsx`)**
+   - Resizable panel layout (sidebar + main content)
+   - Header bar with navigation context
+   - Empty state when no project selected
+   - Integration of all components
+
+5. **New shadcn/ui Components Added**
+   - scroll-area, tooltip, collapsible, resizable, skeleton
+
+6. **Bug Fixes**
+   - Fixed Zod v4 compatibility (z.record requires 2 args)
+   - Fixed react-resizable-panels API (orientation vs direction)
+   - Fixed Prisma field names (parentId/edgeType)
+   - Fixed pagination response structure
+
+**New Files:**
+- `src/components/layout/project-sidebar.tsx`
+- `src/components/layout/dashboard-layout.tsx`
+- `src/components/layout/index.ts`
+- `src/components/board/board-view.tsx`
+- `src/components/board/board-column.tsx`
+- `src/components/board/work-item-card.tsx`
+- `src/components/board/index.ts`
+- `src/components/panel/branch-panel.tsx`
+- `src/components/panel/index.ts`
+- `src/app/dashboard/page.tsx`
+- `src/app/dashboard/layout.tsx`
+
+---
+
 #### Extract Work Endpoint & Tests ✅
 
 **Time:** AI Feature Implementation

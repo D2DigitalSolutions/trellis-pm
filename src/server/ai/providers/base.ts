@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { zodToJsonSchema as zodToJsonSchemaLib } from "zod-to-json-schema";
 import type {
   AIProvider,
   ProviderConfig,
@@ -90,7 +91,7 @@ export abstract class BaseProvider implements AIProvider {
           });
           messages.push({
             role: "user",
-            content: `The JSON you provided was invalid. Validation errors:\n${error.errors
+            content: `The JSON you provided was invalid. Validation errors:\n${error.issues
               .map((e) => `- ${e.path.join(".")}: ${e.message}`)
               .join("\n")}\n\nPlease provide a corrected JSON response.`,
           });
@@ -161,116 +162,19 @@ export abstract class BaseProvider implements AIProvider {
   }
 
   /**
-   * Convert Zod schema to JSON Schema (simplified)
-   * For production, consider using zod-to-json-schema package
+   * Convert Zod schema to JSON Schema using zod-to-json-schema library
    */
   protected zodToJsonSchema(schema: z.ZodType): object {
-    return this.zodTypeToJsonSchema(schema);
-  }
-
-  private zodTypeToJsonSchema(schema: z.ZodType): object {
-    const def = schema._def;
-
-    // Handle ZodObject
-    if (def.typeName === "ZodObject") {
-      const shape = (schema as z.ZodObject<z.ZodRawShape>).shape;
-      const properties: Record<string, object> = {};
-      const required: string[] = [];
-
-      for (const [key, value] of Object.entries(shape)) {
-        properties[key] = this.zodTypeToJsonSchema(value as z.ZodType);
-        if (!this.isOptional(value as z.ZodType)) {
-          required.push(key);
-        }
-      }
-
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return zodToJsonSchemaLib(schema as any, { target: "jsonSchema7" });
+    } catch {
+      // Fallback to a simple description if conversion fails
       return {
         type: "object",
-        properties,
-        required: required.length > 0 ? required : undefined,
+        description: "Schema conversion failed - please output valid JSON matching the description",
       };
     }
-
-    // Handle ZodArray
-    if (def.typeName === "ZodArray") {
-      return {
-        type: "array",
-        items: this.zodTypeToJsonSchema((def as z.ZodArrayDef).type),
-      };
-    }
-
-    // Handle ZodString
-    if (def.typeName === "ZodString") {
-      return { type: "string" };
-    }
-
-    // Handle ZodNumber
-    if (def.typeName === "ZodNumber") {
-      return { type: "number" };
-    }
-
-    // Handle ZodBoolean
-    if (def.typeName === "ZodBoolean") {
-      return { type: "boolean" };
-    }
-
-    // Handle ZodEnum
-    if (def.typeName === "ZodEnum") {
-      return {
-        type: "string",
-        enum: (def as z.ZodEnumDef).values,
-      };
-    }
-
-    // Handle ZodOptional
-    if (def.typeName === "ZodOptional") {
-      return this.zodTypeToJsonSchema((def as z.ZodOptionalDef).innerType);
-    }
-
-    // Handle ZodNullable
-    if (def.typeName === "ZodNullable") {
-      const inner = this.zodTypeToJsonSchema((def as z.ZodNullableDef).innerType);
-      return { ...inner, nullable: true };
-    }
-
-    // Handle ZodDefault
-    if (def.typeName === "ZodDefault") {
-      return this.zodTypeToJsonSchema((def as z.ZodDefaultDef).innerType);
-    }
-
-    // Handle ZodLiteral
-    if (def.typeName === "ZodLiteral") {
-      return { const: (def as z.ZodLiteralDef).value };
-    }
-
-    // Handle ZodUnion
-    if (def.typeName === "ZodUnion") {
-      return {
-        oneOf: (def as z.ZodUnionDef).options.map((opt: z.ZodType) =>
-          this.zodTypeToJsonSchema(opt)
-        ),
-      };
-    }
-
-    // Handle ZodRecord
-    if (def.typeName === "ZodRecord") {
-      return {
-        type: "object",
-        additionalProperties: this.zodTypeToJsonSchema(
-          (def as z.ZodRecordDef).valueType
-        ),
-      };
-    }
-
-    // Default fallback
-    return { type: "string" };
-  }
-
-  private isOptional(schema: z.ZodType): boolean {
-    return (
-      schema._def.typeName === "ZodOptional" ||
-      schema._def.typeName === "ZodDefault"
-    );
   }
 
   /**
@@ -283,4 +187,3 @@ export abstract class BaseProvider implements AIProvider {
     options.onComplete?.(result.text);
   }
 }
-

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "@/server/db";
-import type { Message as DbMessage, Artifact, Branch, WorkItem, Project } from "@/generated/prisma";
+import type { Message as DbMessage, Artifact, Branch, WorkItem, Project } from "@/generated/prisma/client";
 
 // ============================================
 // Context Pack Types

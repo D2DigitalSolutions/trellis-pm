@@ -5,14 +5,14 @@ export const artifactTypeSchema = z.enum(["PLAN", "SPEC", "CHECKLIST", "DECISION
 export const artifactCreateSchema = z.object({
   type: artifactTypeSchema,
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
-  content: z.record(z.unknown()),
+  content: z.record(z.string(), z.any()),
   workItemId: z.string().cuid(),
   branchId: z.string().cuid().optional(),
 });
 
 export const artifactUpdateSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  content: z.record(z.unknown()).optional(),
+  content: z.record(z.string(), z.any()).optional(),
 });
 
 export type ArtifactType = z.infer<typeof artifactTypeSchema>;
