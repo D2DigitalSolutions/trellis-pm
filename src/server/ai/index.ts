@@ -1,71 +1,42 @@
 /**
- * AI Provider Configuration
- * 
- * This module provides a unified interface for AI providers.
- * Add your preferred AI provider configuration here.
+ * AI Provider Module
+ *
+ * Provides a unified interface for multiple AI providers with support for:
+ * - Text generation
+ * - Structured output with Zod schema validation
+ * - Streaming responses
+ *
+ * Supported providers:
+ * - OpenAI (with native structured output support)
+ * - X.AI / Grok
+ * - Ollama (local inference)
  */
 
-export interface AIProvider {
-  name: string;
-  generateText: (prompt: string, options?: AIOptions) => Promise<string>;
-  generateStream: (prompt: string, options?: AIOptions) => AsyncIterable<string>;
-}
+// Export types
+export type {
+  AIProvider,
+  Message,
+  MessageRole,
+  GenerateTextOptions,
+  GenerateStructuredOptions,
+  StreamTextOptions,
+  TextGenerationResult,
+  StructuredGenerationResult,
+  ProviderConfig,
+} from "./types";
 
-export interface AIOptions {
-  maxTokens?: number;
-  temperature?: number;
-  model?: string;
-}
+export { AIProviderError, StructuredOutputError } from "./types";
 
-/**
- * OpenAI Provider (placeholder)
- */
-export const openaiProvider: AIProvider = {
-  name: "openai",
-  async generateText(prompt: string, options?: AIOptions): Promise<string> {
-    // TODO: Implement OpenAI integration
-    // Example:
-    // const response = await openai.chat.completions.create({
-    //   model: options?.model ?? "gpt-4",
-    //   messages: [{ role: "user", content: prompt }],
-    //   max_tokens: options?.maxTokens ?? 1000,
-    //   temperature: options?.temperature ?? 0.7,
-    // });
-    // return response.choices[0]?.message?.content ?? "";
-    
-    throw new Error("OpenAI provider not configured. Add OPENAI_API_KEY to .env");
-  },
-  async *generateStream(prompt: string, options?: AIOptions): AsyncIterable<string> {
-    // TODO: Implement streaming
-    throw new Error("OpenAI provider not configured. Add OPENAI_API_KEY to .env");
-  },
-};
+// Export providers
+export {
+  BaseProvider,
+  XAIProvider,
+  createXAIProvider,
+  OpenAIProvider,
+  createOpenAIProvider,
+  OllamaProvider,
+  createOllamaProvider,
+} from "./providers";
 
-/**
- * Anthropic Provider (placeholder)
- */
-export const anthropicProvider: AIProvider = {
-  name: "anthropic",
-  async generateText(prompt: string, options?: AIOptions): Promise<string> {
-    // TODO: Implement Anthropic integration
-    throw new Error("Anthropic provider not configured. Add ANTHROPIC_API_KEY to .env");
-  },
-  async *generateStream(prompt: string, options?: AIOptions): AsyncIterable<string> {
-    // TODO: Implement streaming
-    throw new Error("Anthropic provider not configured. Add ANTHROPIC_API_KEY to .env");
-  },
-};
-
-/**
- * Get configured AI provider
- */
-export function getAIProvider(): AIProvider | null {
-  if (process.env.OPENAI_API_KEY) {
-    return openaiProvider;
-  }
-  if (process.env.ANTHROPIC_API_KEY) {
-    return anthropicProvider;
-  }
-  return null;
-}
-
+// Export selector
+export { getAIProvider, getAvailableProviders, type ProviderName } from "./selector";
