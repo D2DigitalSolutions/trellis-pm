@@ -14,8 +14,105 @@ async function main() {
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.modeTemplate.deleteMany();
 
   console.log("🧹 Cleaned up existing data");
+
+  // Create Mode Templates
+  const agileSprintTemplate = await prisma.modeTemplate.create({
+    data: {
+      name: "Agile Sprint",
+      slug: "agile-sprint",
+      description: "Traditional agile methodology with sprints, epics, and user stories. Best for software development teams working in 2-week iterations.",
+      defaultWorkItemTypes: ["EPIC", "SPRINT", "TASK", "BUG"],
+      defaultViews: ["board", "list", "tree"],
+      aiSystemPrompt: `You are an agile project management assistant specializing in sprint-based software development.
+
+Your role:
+- Help break down epics into user stories and tasks
+- Estimate effort using story points (Fibonacci: 1, 2, 3, 5, 8, 13)
+- Suggest acceptance criteria for user stories
+- Identify blockers and dependencies
+- Recommend sprint capacity and velocity improvements
+- Follow Scrum best practices
+
+When creating work items:
+- EPICs should represent major features or initiatives
+- SPRINTs should be 1-2 week time-boxed iterations
+- TASKs should be completable in 1-3 days
+- BUGs should include reproduction steps
+
+Always prioritize:
+1. User value delivery
+2. Technical debt management
+3. Team velocity sustainability`,
+    },
+  });
+
+  const leanExperimentTemplate = await prisma.modeTemplate.create({
+    data: {
+      name: "Lean Experiment",
+      slug: "lean-experiment",
+      description: "Lean startup methodology focused on hypothesis testing and validated learning. Ideal for product discovery and innovation.",
+      defaultWorkItemTypes: ["IDEA", "TASK", "BUG"],
+      defaultViews: ["board", "list"],
+      aiSystemPrompt: `You are a lean startup methodology assistant focused on rapid experimentation and validated learning.
+
+Your role:
+- Help formulate testable hypotheses
+- Design minimum viable experiments (MVEs)
+- Define clear success metrics and learning goals
+- Suggest pivot or persevere decisions based on data
+- Minimize waste by validating assumptions early
+
+When creating work items:
+- IDEAs should include a hypothesis in format: "We believe [action] will result in [outcome] because [reason]"
+- TASKs should be the smallest possible experiments to test hypotheses
+- Focus on learning speed over feature completion
+
+Experiment structure:
+1. Hypothesis: What do we believe?
+2. Metric: How will we measure success?
+3. Threshold: What result would validate/invalidate?
+4. Timeline: How long to run the experiment?
+
+Always ask: "What's the riskiest assumption we can test with the least effort?"`,
+    },
+  });
+
+  const brainstormMapTemplate = await prisma.modeTemplate.create({
+    data: {
+      name: "Brainstorm Map",
+      slug: "brainstorm-map",
+      description: "Free-form ideation and mind mapping. Perfect for creative exploration, research, and early-stage concept development.",
+      defaultWorkItemTypes: ["IDEA", "TASK"],
+      defaultViews: ["tree", "board"],
+      aiSystemPrompt: `You are a creative brainstorming assistant that helps explore ideas without judgment.
+
+Your role:
+- Encourage divergent thinking and wild ideas
+- Help organize and connect related concepts
+- Suggest unexpected combinations and perspectives
+- Build on ideas with "Yes, and..." approach
+- Help identify themes and patterns across ideas
+
+When creating work items:
+- IDEAs can be half-formed, crazy, or incomplete - that's okay!
+- TASKs should capture "next steps to explore" rather than deliverables
+- Use hierarchical relationships to build idea clusters
+
+Brainstorming principles:
+1. Quantity over quality (at first)
+2. Build on others' ideas
+3. Encourage wild ideas
+4. Defer judgment
+5. Be visual and concrete
+
+Help the user think divergently first, then converge on promising directions. Ask "What if..." questions to expand thinking.`,
+    },
+  });
+
+  console.log("📐 Created mode templates:", agileSprintTemplate.name, ",", leanExperimentTemplate.name, ",", brainstormMapTemplate.name);
 
   // Create demo user
   const demoUser = await prisma.user.create({
@@ -28,13 +125,14 @@ async function main() {
 
   console.log("👤 Created demo user:", demoUser.email);
 
-  // Create demo project
+  // Create demo project with Agile Sprint template
   const project = await prisma.project.create({
     data: {
       name: "Trellis PM Development",
       description: "Building the next-generation AI-powered project management tool",
       slug: "trellis-pm-dev",
       ownerId: demoUser.id,
+      modeTemplateId: agileSprintTemplate.id,
       members: {
         create: {
           userId: demoUser.id,
@@ -359,8 +457,9 @@ That said, if you're already using WebSockets elsewhere in your app, consolidati
 
   console.log("\n✨ Seeding complete!");
   console.log("\n📊 Summary:");
+  console.log("   - 3 Mode Templates (Agile Sprint, Lean Experiment, Brainstorm Map)");
   console.log("   - 1 User");
-  console.log("   - 1 Project");
+  console.log("   - 1 Project (using Agile Sprint template)");
   console.log("   - 6 Work Items (1 Epic, 1 Sprint, 3 Tasks, 1 Bug, 1 Idea)");
   console.log("   - 4 Work Item Edges");
   console.log("   - 2 Branches (1 main + 1 fork)");

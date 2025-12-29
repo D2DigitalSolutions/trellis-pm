@@ -6,6 +6,7 @@ import { messageRouter } from "./message";
 import { artifactRouter } from "./artifact";
 import { contextRouter } from "./context";
 import { aiRouter } from "./ai";
+import { modeTemplateRouter } from "./mode-template";
 
 /**
  * This is the primary router for your server.
@@ -19,6 +20,7 @@ export const appRouter = createTRPCRouter({
   artifact: artifactRouter,
   context: contextRouter,
   ai: aiRouter,
+  modeTemplate: modeTemplateRouter,
 });
 
 // Export type definition of API

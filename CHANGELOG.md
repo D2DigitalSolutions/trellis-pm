@@ -8,6 +8,51 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 29, 2024
 
+#### Mode Templates Implementation ✅
+
+**Time:** Template System
+
+**Changes Made:**
+
+1. **Mode Template Model (`prisma/schema.prisma`)**
+   - New `ModeTemplate` model with:
+     - `name`, `slug`, `description`
+     - `defaultWorkItemTypes` (array of work item types)
+     - `defaultViews` (array of view options: board, list, tree)
+     - `aiSystemPrompt` (text for AI personality/behavior)
+   - Added `modeTemplateId` to `Project` model
+
+2. **Three Built-in Templates (seeded)**
+   - **Agile Sprint**: Traditional scrum methodology with sprints, epics, story points
+   - **Lean Experiment**: Lean startup methodology with hypothesis testing, MVEs
+   - **Brainstorm Map**: Free-form ideation with divergent thinking approach
+
+3. **tRPC Router (`src/server/trpc/routers/mode-template.ts`)**
+   - `getAll`, `list` - List all templates
+   - `getById`, `getBySlug` - Get single template
+   - `create`, `update`, `delete` - CRUD operations
+
+4. **Project Creation Updated**
+   - Added `modeTemplateId` to project creation input
+   - Projects now include `modeTemplate` in queries
+
+5. **ContextBuilder Integration**
+   - `ContextPack` now includes `modeTemplate` with `aiSystemPrompt`
+   - `formatContextAsString()` includes AI system prompt at top
+   - AI receives mode-specific instructions for each conversation
+
+6. **React Hooks**
+   - `useModeTemplates`, `useModeTemplateList`
+   - `useModeTemplate`, `useModeTemplateBySlug`
+   - `useCreateModeTemplate`, `useUpdateModeTemplate`, `useDeleteModeTemplate`
+
+**Template AI Prompts:**
+- Agile Sprint: Focus on sprints, story points, velocity, Scrum practices
+- Lean Experiment: Focus on hypotheses, MVEs, validated learning, pivot decisions
+- Brainstorm Map: Focus on divergent thinking, idea exploration, "Yes, and..." approach
+
+---
+
 #### Dashboard UI Implementation ✅
 
 **Time:** UI Build

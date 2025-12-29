@@ -9,6 +9,7 @@ const projectCreateInputSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name is too long"),
   description: z.string().max(500).optional(),
   ownerId: z.string().min(1, "Owner ID is required"),
+  modeTemplateId: z.string().optional(),
 });
 
 const projectUpdateInputSchema = z.object({
@@ -35,6 +36,15 @@ const userSummarySchema = z.object({
   avatarUrl: z.string().nullable(),
 });
 
+const modeTemplateSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  description: z.string(),
+  defaultWorkItemTypes: z.array(z.enum(["EPIC", "SPRINT", "TASK", "BUG", "IDEA"])),
+  defaultViews: z.array(z.string()),
+}).nullable();
+
 const projectSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -45,7 +55,9 @@ const projectSummarySchema = z.object({
   updatedAt: z.date(),
   deletedAt: z.date().nullable(),
   ownerId: z.string(),
+  modeTemplateId: z.string().nullable(),
   owner: userSummarySchema,
+  modeTemplate: modeTemplateSummarySchema,
   _count: z.object({
     workItems: z.number(),
     members: z.number(),
@@ -97,6 +109,16 @@ export const projectRouter = createTRPCRouter({
               avatarUrl: true,
             },
           },
+          modeTemplate: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              defaultWorkItemTypes: true,
+              defaultViews: true,
+            },
+          },
           _count: {
             select: {
               workItems: true,
@@ -142,6 +164,16 @@ export const projectRouter = createTRPCRouter({
               name: true,
               email: true,
               avatarUrl: true,
+            },
+          },
+          modeTemplate: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              defaultWorkItemTypes: true,
+              defaultViews: true,
             },
           },
           _count: {
@@ -275,6 +307,7 @@ export const projectRouter = createTRPCRouter({
           description: input.description,
           slug,
           ownerId: input.ownerId,
+          modeTemplateId: input.modeTemplateId,
           members: {
             create: {
               userId: input.ownerId,

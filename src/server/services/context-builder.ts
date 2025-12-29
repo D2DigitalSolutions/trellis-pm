@@ -7,6 +7,13 @@ import type { Message as DbMessage, Artifact, Branch, WorkItem, Project } from "
 // ============================================
 
 export interface ContextPack {
+  // Mode template (if project has one)
+  modeTemplate: {
+    id: string;
+    name: string;
+    aiSystemPrompt: string;
+  } | null;
+
   // Project context
   project: {
     id: string;
@@ -105,13 +112,23 @@ export class ContextBuilder {
    * Build a complete context pack for a branch
    */
   async buildContext(branchId: string): Promise<ContextPack> {
-    // Fetch branch with work item and project
+    // Fetch branch with work item and project (including mode template)
     const branch = await db.branch.findUnique({
       where: { id: branchId },
       include: {
         workItem: {
           include: {
-            project: true,
+            project: {
+              include: {
+                modeTemplate: {
+                  select: {
+                    id: true,
+                    name: true,
+                    aiSystemPrompt: true,
+                  },
+                },
+              },
+            },
             parentEdges: {
               where: { deletedAt: null, edgeType: "PARENT_CHILD" },
               include: {
@@ -157,6 +174,13 @@ export class ContextBuilder {
     });
 
     return {
+      modeTemplate: project.modeTemplate
+        ? {
+            id: project.modeTemplate.id,
+            name: project.modeTemplate.name,
+            aiSystemPrompt: project.modeTemplate.aiSystemPrompt,
+          }
+        : null,
       project: {
         id: project.id,
         name: project.name,
@@ -214,6 +238,15 @@ export class ContextBuilder {
    */
   formatContextAsString(context: ContextPack): string {
     const sections: string[] = [];
+
+    // Mode template AI system prompt (at the top for prominence)
+    if (context.modeTemplate?.aiSystemPrompt) {
+      sections.push("# AI Instructions");
+      sections.push(context.modeTemplate.aiSystemPrompt);
+      sections.push("");
+      sections.push("---");
+      sections.push("");
+    }
 
     // Project section
     sections.push(`## Project: ${context.project.name}`);

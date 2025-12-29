@@ -500,3 +500,60 @@ export function useExtractWork() {
 export function useGenerateText() {
   return trpc.ai.generateText.useMutation();
 }
+
+// ============================================
+// Mode Template Hooks
+// ============================================
+
+export function useModeTemplates() {
+  return trpc.modeTemplate.getAll.useQuery();
+}
+
+export function useModeTemplateList(options?: { limit?: number }) {
+  return trpc.modeTemplate.list.useQuery(options);
+}
+
+export function useModeTemplate(id: string) {
+  return trpc.modeTemplate.getById.useQuery(
+    { id },
+    { enabled: !!id }
+  );
+}
+
+export function useModeTemplateBySlug(slug: string) {
+  return trpc.modeTemplate.getBySlug.useQuery(
+    { slug },
+    { enabled: !!slug }
+  );
+}
+
+export function useCreateModeTemplate() {
+  const utils = trpc.useUtils();
+  return trpc.modeTemplate.create.useMutation({
+    onSuccess: () => {
+      utils.modeTemplate.getAll.invalidate();
+      utils.modeTemplate.list.invalidate();
+    },
+  });
+}
+
+export function useUpdateModeTemplate() {
+  const utils = trpc.useUtils();
+  return trpc.modeTemplate.update.useMutation({
+    onSuccess: (data) => {
+      utils.modeTemplate.getAll.invalidate();
+      utils.modeTemplate.list.invalidate();
+      utils.modeTemplate.getById.invalidate({ id: data.id });
+    },
+  });
+}
+
+export function useDeleteModeTemplate() {
+  const utils = trpc.useUtils();
+  return trpc.modeTemplate.delete.useMutation({
+    onSuccess: () => {
+      utils.modeTemplate.getAll.invalidate();
+      utils.modeTemplate.list.invalidate();
+    },
+  });
+}

@@ -35,6 +35,29 @@ model User {
 }
 
 // ============================================
+// Mode Templates
+// ============================================
+model ModeTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  slug        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Template configuration
+  defaultWorkItemTypes WorkItemType[]
+  defaultViews         String[]       // e.g., ["board", "list", "tree"]
+  aiSystemPrompt       String         @db.Text
+
+  // Relations
+  projects Project[]
+
+  @@index([slug])
+  @@map("mode_templates")
+}
+
+// ============================================
 // Project Management
 // ============================================
 model Project {
@@ -51,6 +74,10 @@ model Project {
   summary          String?
   summaryUpdatedAt DateTime?
 
+  // Mode template for project behavior
+  modeTemplateId String?
+  modeTemplate   ModeTemplate? @relation(fields: [modeTemplateId], references: [id])
+
   // Relations
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -62,6 +89,7 @@ model Project {
   @@index([ownerId])
   @@index([status])
   @@index([deletedAt])
+  @@index([modeTemplateId])
   @@map("projects")
 }
 

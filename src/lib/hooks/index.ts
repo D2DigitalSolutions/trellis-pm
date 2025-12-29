@@ -60,4 +60,12 @@ export {
   useAIStatus,
   useExtractWork,
   useGenerateText,
+  // Mode Template hooks
+  useModeTemplates,
+  useModeTemplateList,
+  useModeTemplate,
+  useModeTemplateBySlug,
+  useCreateModeTemplate,
+  useUpdateModeTemplate,
+  useDeleteModeTemplate,
 } from "./use-trpc";
