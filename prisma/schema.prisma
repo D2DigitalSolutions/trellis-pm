@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// User & Authentication
+// ============================================
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ownedProjects    Project[]         @relation("ProjectOwner")
+  projectMembers   ProjectMember[]
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  createdTasks     Task[]            @relation("TaskCreator")
+  comments         Comment[]
+  activityLogs     ActivityLog[]
+
+  @@map("users")
+}
+
+// ============================================
+// Project Management
+// ============================================
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  slug        String        @unique
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  ownerId String
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members      ProjectMember[]
+  tasks        Task[]
+  labels       Label[]
+  activityLogs ActivityLog[]
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  role      MemberRole  @default(MEMBER)
+  createdAt DateTime    @default(now())
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+// ============================================
+// Task Management
+// ============================================
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  position    Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  creatorId String
+  creator   User   @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Task?   @relation("TaskSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks Task[]  @relation("TaskSubtasks")
+
+  labels   Label[]
+  comments Comment[]
+
+  @@index([projectId, status])
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String
+  color String @default("#6366f1")
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  tasks Task[]
+
+  @@unique([projectId, name])
+  @@map("labels")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// ============================================
+// Activity & Audit Log
+// ============================================
+model ActivityLog {
+  id        String       @id @default(cuid())
+  action    ActivityType
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  // Relations
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("activity_logs")
+}
+
+// ============================================
+// Enums
+// ============================================
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+  COMPLETED
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ActivityType {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_ARCHIVED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_DELETED
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  COMMENT_ADDED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+}
