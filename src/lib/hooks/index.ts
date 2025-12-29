@@ -49,4 +49,11 @@ export {
   useUpdateArtifact,
   useDeleteArtifact,
   useDuplicateArtifact,
+  // Context hooks
+  useContext,
+  useContextString,
+  useNeedsSummary,
+  useSummarizeBranch,
+  useSummarizeProject,
+  useRunSummarizationJob,
 } from "./use-trpc";

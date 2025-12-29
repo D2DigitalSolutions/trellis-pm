@@ -421,3 +421,66 @@ export function useDuplicateArtifact() {
     },
   });
 }
+
+// ============================================
+// Context Hooks
+// ============================================
+
+export function useContext(branchId: string, options?: {
+  messageLimit?: number;
+  includeArtifacts?: boolean;
+}) {
+  return trpc.context.build.useQuery(
+    { branchId, options },
+    { enabled: !!branchId }
+  );
+}
+
+export function useContextString(branchId: string, options?: {
+  messageLimit?: number;
+  includeArtifacts?: boolean;
+}) {
+  return trpc.context.buildString.useQuery(
+    { branchId, options },
+    { enabled: !!branchId }
+  );
+}
+
+export function useNeedsSummary(branchId: string) {
+  return trpc.context.needsSummary.useQuery(
+    { branchId },
+    { enabled: !!branchId }
+  );
+}
+
+export function useSummarizeBranch() {
+  const utils = trpc.useUtils();
+  return trpc.context.summarizeBranch.useMutation({
+    onSuccess: (_, variables) => {
+      utils.branch.get.invalidate({ id: variables.branchId });
+      utils.branch.getById.invalidate({ id: variables.branchId });
+      utils.context.build.invalidate({ branchId: variables.branchId });
+      utils.context.needsSummary.invalidate({ branchId: variables.branchId });
+    },
+  });
+}
+
+export function useSummarizeProject() {
+  const utils = trpc.useUtils();
+  return trpc.context.summarizeProject.useMutation({
+    onSuccess: (_, variables) => {
+      utils.project.get.invalidate({ id: variables.projectId });
+      utils.project.getById.invalidate({ id: variables.projectId });
+    },
+  });
+}
+
+export function useRunSummarizationJob() {
+  const utils = trpc.useUtils();
+  return trpc.context.runSummarizationJob.useMutation({
+    onSuccess: () => {
+      utils.branch.invalidate();
+      utils.context.invalidate();
+    },
+  });
+}

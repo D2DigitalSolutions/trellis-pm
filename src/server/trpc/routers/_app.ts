@@ -4,6 +4,7 @@ import { workItemRouter } from "./work-item";
 import { branchRouter } from "./branch";
 import { messageRouter } from "./message";
 import { artifactRouter } from "./artifact";
+import { contextRouter } from "./context";
 
 /**
  * This is the primary router for your server.
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   branch: branchRouter,
   message: messageRouter,
   artifact: artifactRouter,
+  context: contextRouter,
 });
 
 // Export type definition of API

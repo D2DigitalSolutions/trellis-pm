@@ -47,6 +47,10 @@ model Project {
   updatedAt   DateTime      @updatedAt
   deletedAt   DateTime?
 
+  // AI-generated project summary for context building
+  summary          String?
+  summaryUpdatedAt DateTime?
+
   // Relations
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -93,6 +97,9 @@ model WorkItem {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
+
+  // Acceptance criteria for the work item
+  acceptanceCriteria String?
 
   // Relations
   projectId String
@@ -153,6 +160,12 @@ model Branch {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  // AI-generated rolling summary of the conversation
+  summary          String?
+  summaryUpdatedAt DateTime?
+  // Message count at last summary generation (for triggering updates)
+  summaryMessageCount Int @default(0)
 
   // Relations
   workItemId String
