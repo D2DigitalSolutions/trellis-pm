@@ -15,14 +15,14 @@ const artifactTypeEnum = z.enum(["PLAN", "SPEC", "CHECKLIST", "DECISION", "CODE"
 const artifactCreateInputSchema = z.object({
   type: artifactTypeEnum,
   title: z.string().min(1, "Title is required").max(255, "Title is too long"),
-  content: z.record(z.unknown()),
+  content: z.record(z.string(), z.any()),
   workItemId: z.string().min(1, "Work item ID is required"),
   branchId: z.string().optional(),
 });
 
 const artifactUpdateInputSchema = z.object({
   title: z.string().min(1).max(255).optional(),
-  content: z.record(z.unknown()).optional(),
+  content: z.record(z.string(), z.any()).optional(),
 });
 
 const artifactListInputSchema = z.object({

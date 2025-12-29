@@ -56,4 +56,8 @@ export {
   useSummarizeBranch,
   useSummarizeProject,
   useRunSummarizationJob,
+  // AI hooks
+  useAIStatus,
+  useExtractWork,
+  useGenerateText,
 } from "./use-trpc";

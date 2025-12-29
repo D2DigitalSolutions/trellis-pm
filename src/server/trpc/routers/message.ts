@@ -17,12 +17,12 @@ const messageCreateInputSchema = z.object({
   role: messageRoleEnum,
   content: z.string().min(1, "Content is required"),
   userId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 const messageUpdateInputSchema = z.object({
   content: z.string().min(1),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 const messageListInputSchema = z.object({
@@ -294,7 +294,7 @@ export const messageRouter = createTRPCRouter({
       role: messageRoleEnum,
       content: z.string(),
       userId: z.string().optional(),
-      metadata: z.record(z.unknown()).optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       return ctx.db.message.create({
@@ -380,7 +380,7 @@ export const messageRouter = createTRPCRouter({
         role: messageRoleEnum,
         content: z.string(),
         userId: z.string().optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
       })),
     }))
     .mutation(async ({ ctx, input }) => {

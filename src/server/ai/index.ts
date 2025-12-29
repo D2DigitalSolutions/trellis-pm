@@ -5,6 +5,7 @@
  * - Text generation
  * - Structured output with Zod schema validation
  * - Streaming responses
+ * - Work item extraction from natural language
  *
  * Supported providers:
  * - OpenAI (with native structured output support)
@@ -39,4 +40,25 @@ export {
 } from "./providers";
 
 // Export selector
-export { getAIProvider, getAvailableProviders, type ProviderName } from "./selector";
+export { getAIProvider, getAvailableProviders, getProviderStatus, type ProviderName } from "./selector";
+
+// Export schemas
+export {
+  extractWorkResponseSchema,
+  extractWorkInputSchema,
+  workItemToCreateSchema,
+  artifactToCreateSchema,
+  type ExtractWorkResponse,
+  type ExtractWorkInput,
+  type WorkItemToCreate,
+  type ArtifactToCreate,
+} from "./schemas";
+
+// Export extract-work service
+export {
+  extractWork,
+  validateExtractWorkResponse,
+  repairExtractWorkJson,
+  type ExtractWorkOptions,
+  type ExtractWorkResult,
+} from "./extract-work";

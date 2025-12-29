@@ -484,3 +484,19 @@ export function useRunSummarizationJob() {
     },
   });
 }
+
+// ============================================
+// AI Hooks
+// ============================================
+
+export function useAIStatus() {
+  return trpc.ai.status.useQuery();
+}
+
+export function useExtractWork() {
+  return trpc.ai.extractWork.useMutation();
+}
+
+export function useGenerateText() {
+  return trpc.ai.generateText.useMutation();
+}

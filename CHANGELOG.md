@@ -8,6 +8,60 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 29, 2024
 
+#### Extract Work Endpoint & Tests ✅
+
+**Time:** AI Feature Implementation
+
+**Changes Made:**
+
+1. **Extract Work API Endpoint**
+   - `POST /api/ai/extract-work` - REST endpoint for work extraction
+   - `ai.extractWork` - tRPC mutation for work extraction
+   - Input: branchId + userText
+   - Output: structured JSON with workItemsToCreate, artifactsToCreate, suggestedNextActions
+
+2. **Zod Schemas**
+   - `workItemToCreateSchema` - validates extracted work items (title, type, description, acceptanceCriteria, priority, etc.)
+   - `artifactToCreateSchema` - validates extracted artifacts (workItemTitleRef, type, title, content)
+   - `extractWorkResponseSchema` - full response validation
+   - `extractWorkInputSchema` - input validation with options
+
+3. **AI Integration**
+   - Uses configured AI provider (OpenAI, XAI, Ollama)
+   - Leverages structured output when provider supports it
+   - Falls back to JSON mode + validation + retry for other providers
+   - Includes JSON repair utilities for malformed responses
+   - Context building from branch history (optional)
+
+4. **tRPC Router (`ai.ts`)**
+   - `status` - returns AI provider configuration status
+   - `extractWork` - extracts work items from user text
+   - `generateText` - simple text generation for testing
+
+5. **React Hooks**
+   - `useAIStatus` - query AI provider status
+   - `useExtractWork` - mutation for work extraction
+   - `useGenerateText` - mutation for text generation
+
+6. **Tests (vitest)**
+   - Schema validation tests (30 tests)
+   - Work item type validation
+   - Artifact type validation
+   - Input validation
+   - JSON repair utilities
+   - Mock provider integration tests
+
+**Files Created:**
+- `src/server/ai/schemas/extract-work.ts`
+- `src/server/ai/schemas/index.ts`
+- `src/server/ai/extract-work.ts`
+- `src/server/trpc/routers/ai.ts`
+- `src/app/api/ai/extract-work/route.ts`
+- `src/server/ai/__tests__/extract-work.test.ts`
+- `vitest.config.ts`
+
+---
+
 #### Schema Redesign for AI-Powered Conversations ✅
 
 **Time:** Schema Update
