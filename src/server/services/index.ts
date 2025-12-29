@@ -1,3 +1,4 @@
-export { projectService } from "./project.service";
-export { taskService } from "./task.service";
+// Services layer - business logic separated from tRPC routers
+// Add services here as the application grows
 
+export {};

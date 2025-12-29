@@ -10,8 +10,8 @@ import { trpc } from "@/lib/providers/trpc-provider";
 // Project Hooks
 // ============================================
 
-export function useProjects() {
-  return trpc.project.getAll.useQuery();
+export function useProjects(includeDeleted = false) {
+  return trpc.project.getAll.useQuery({ includeDeleted });
 }
 
 export function useProject(id: string) {
@@ -57,59 +57,187 @@ export function useDeleteProject() {
 }
 
 // ============================================
-// Task Hooks
+// Work Item Hooks
 // ============================================
 
-export function useTasks(projectId: string) {
-  return trpc.task.getByProject.useQuery(
-    { projectId },
+export function useWorkItems(projectId: string, type?: "EPIC" | "SPRINT" | "TASK" | "BUG" | "IDEA") {
+  return trpc.workItem.getByProject.useQuery(
+    { projectId, type },
     { enabled: !!projectId }
   );
 }
 
-export function useTask(id: string) {
-  return trpc.task.getById.useQuery(
+export function useWorkItem(id: string) {
+  return trpc.workItem.getById.useQuery(
     { id },
     { enabled: !!id }
   );
 }
 
-export function useCreateTask() {
+export function useCreateWorkItem() {
   const utils = trpc.useUtils();
-  return trpc.task.create.useMutation({
+  return trpc.workItem.create.useMutation({
     onSuccess: (data) => {
-      utils.task.getByProject.invalidate({ projectId: data.projectId });
+      utils.workItem.getByProject.invalidate({ projectId: data.projectId });
     },
   });
 }
 
-export function useUpdateTask() {
+export function useUpdateWorkItem() {
   const utils = trpc.useUtils();
-  return trpc.task.update.useMutation({
+  return trpc.workItem.update.useMutation({
     onSuccess: (data) => {
-      utils.task.getByProject.invalidate({ projectId: data.projectId });
-      utils.task.getById.invalidate({ id: data.id });
+      utils.workItem.getByProject.invalidate({ projectId: data.projectId });
+      utils.workItem.getById.invalidate({ id: data.id });
     },
   });
 }
 
-export function useDeleteTask() {
+export function useDeleteWorkItem() {
   const utils = trpc.useUtils();
-  return trpc.task.delete.useMutation({
-    onSuccess: (_, variables) => {
-      // Note: We'd need to know the projectId to invalidate properly
-      // In practice, you'd pass it or use optimistic updates
-      utils.task.invalidate();
-    },
-  });
-}
-
-export function useReorderTasks() {
-  const utils = trpc.useUtils();
-  return trpc.task.reorder.useMutation({
+  return trpc.workItem.delete.useMutation({
     onSuccess: () => {
-      utils.task.invalidate();
+      utils.workItem.invalidate();
     },
   });
 }
 
+export function useReorderWorkItems() {
+  const utils = trpc.useUtils();
+  return trpc.workItem.reorder.useMutation({
+    onSuccess: () => {
+      utils.workItem.invalidate();
+    },
+  });
+}
+
+// ============================================
+// Branch Hooks
+// ============================================
+
+export function useBranches(workItemId: string) {
+  return trpc.branch.getByWorkItem.useQuery(
+    { workItemId },
+    { enabled: !!workItemId }
+  );
+}
+
+export function useBranch(id: string, includeMessages = true) {
+  return trpc.branch.getById.useQuery(
+    { id, includeMessages },
+    { enabled: !!id }
+  );
+}
+
+export function useCreateBranch() {
+  const utils = trpc.useUtils();
+  return trpc.branch.create.useMutation({
+    onSuccess: (data) => {
+      utils.branch.getByWorkItem.invalidate({ workItemId: data.workItemId });
+    },
+  });
+}
+
+export function useDeleteBranch() {
+  const utils = trpc.useUtils();
+  return trpc.branch.delete.useMutation({
+    onSuccess: () => {
+      utils.branch.invalidate();
+    },
+  });
+}
+
+// ============================================
+// Message Hooks
+// ============================================
+
+export function useMessages(branchId: string, limit = 50) {
+  return trpc.message.getByBranch.useQuery(
+    { branchId, limit },
+    { enabled: !!branchId }
+  );
+}
+
+export function useCreateMessage() {
+  const utils = trpc.useUtils();
+  return trpc.message.create.useMutation({
+    onSuccess: (data) => {
+      utils.message.getByBranch.invalidate({ branchId: data.branchId });
+      utils.branch.getById.invalidate({ id: data.branchId });
+    },
+  });
+}
+
+export function useUpdateMessage() {
+  const utils = trpc.useUtils();
+  return trpc.message.update.useMutation({
+    onSuccess: (data) => {
+      utils.message.getByBranch.invalidate({ branchId: data.branchId });
+    },
+  });
+}
+
+export function useDeleteMessage() {
+  const utils = trpc.useUtils();
+  return trpc.message.delete.useMutation({
+    onSuccess: () => {
+      utils.message.invalidate();
+    },
+  });
+}
+
+// ============================================
+// Artifact Hooks
+// ============================================
+
+export function useArtifacts(workItemId: string, type?: "PLAN" | "SPEC" | "CHECKLIST" | "DECISION" | "CODE" | "NOTE") {
+  return trpc.artifact.getByWorkItem.useQuery(
+    { workItemId, type },
+    { enabled: !!workItemId }
+  );
+}
+
+export function useArtifactsByBranch(branchId: string) {
+  return trpc.artifact.getByBranch.useQuery(
+    { branchId },
+    { enabled: !!branchId }
+  );
+}
+
+export function useArtifact(id: string) {
+  return trpc.artifact.getById.useQuery(
+    { id },
+    { enabled: !!id }
+  );
+}
+
+export function useCreateArtifact() {
+  const utils = trpc.useUtils();
+  return trpc.artifact.create.useMutation({
+    onSuccess: (data) => {
+      utils.artifact.getByWorkItem.invalidate({ workItemId: data.workItemId });
+      if (data.branchId) {
+        utils.artifact.getByBranch.invalidate({ branchId: data.branchId });
+      }
+    },
+  });
+}
+
+export function useUpdateArtifact() {
+  const utils = trpc.useUtils();
+  return trpc.artifact.update.useMutation({
+    onSuccess: (data) => {
+      utils.artifact.getById.invalidate({ id: data.id });
+      utils.artifact.getByWorkItem.invalidate({ workItemId: data.workItemId });
+    },
+  });
+}
+
+export function useDeleteArtifact() {
+  const utils = trpc.useUtils();
+  return trpc.artifact.delete.useMutation({
+    onSuccess: () => {
+      utils.artifact.invalidate();
+    },
+  });
+}

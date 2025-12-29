@@ -1,34 +1,52 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { projectCreateSchema, projectUpdateSchema } from "@/lib/schemas/project";
+
+const projectCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  ownerId: z.string(),
+});
+
+const projectUpdateSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  status: z.enum(["ACTIVE", "ARCHIVED", "COMPLETED"]).optional(),
+});
 
 export const projectRouter = createTRPCRouter({
   /**
    * Get all projects
    */
-  getAll: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.project.findMany({
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
+  getAll: publicProcedure
+    .input(z.object({
+      includeDeleted: z.boolean().optional().default(false),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      return ctx.db.project.findMany({
+        where: {
+          deletedAt: input?.includeDeleted ? undefined : null,
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+          _count: {
+            select: {
+              workItems: true,
+              members: true,
+            },
           },
         },
-        _count: {
-          select: {
-            tasks: true,
-            members: true,
-          },
+        orderBy: {
+          updatedAt: "desc",
         },
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    });
-  }),
+      });
+    }),
 
   /**
    * Get a single project by ID
@@ -41,14 +59,14 @@ export const projectRouter = createTRPCRouter({
         include: {
           owner: true,
           members: {
+            where: { deletedAt: null },
             include: {
               user: true,
             },
           },
-          labels: true,
           _count: {
             select: {
-              tasks: true,
+              workItems: true,
             },
           },
         },
@@ -66,11 +84,11 @@ export const projectRouter = createTRPCRouter({
         include: {
           owner: true,
           members: {
+            where: { deletedAt: null },
             include: {
               user: true,
             },
           },
-          labels: true,
         },
       });
     }),
@@ -87,10 +105,27 @@ export const projectRouter = createTRPCRouter({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
+      // Make slug unique by appending a random suffix if needed
+      const existingProject = await ctx.db.project.findUnique({
+        where: { slug },
+      });
+
+      const finalSlug = existingProject
+        ? `${slug}-${Math.random().toString(36).substring(2, 8)}`
+        : slug;
+
       return ctx.db.project.create({
         data: {
-          ...input,
-          slug,
+          name: input.name,
+          description: input.description,
+          slug: finalSlug,
+          ownerId: input.ownerId,
+          members: {
+            create: {
+              userId: input.ownerId,
+              role: "OWNER",
+            },
+          },
         },
       });
     }),
@@ -113,14 +148,65 @@ export const projectRouter = createTRPCRouter({
     }),
 
   /**
-   * Delete a project
+   * Soft delete a project
    */
   delete: publicProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.project.delete({
+      return ctx.db.project.update({
         where: { id: input.id },
+        data: { deletedAt: new Date() },
+      });
+    }),
+
+  /**
+   * Restore a soft-deleted project
+   */
+  restore: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.project.update({
+        where: { id: input.id },
+        data: { deletedAt: null },
+      });
+    }),
+
+  /**
+   * Add a member to a project
+   */
+  addMember: publicProcedure
+    .input(z.object({
+      projectId: z.string(),
+      userId: z.string(),
+      role: z.enum(["ADMIN", "MEMBER", "VIEWER"]).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.projectMember.create({
+        data: {
+          projectId: input.projectId,
+          userId: input.userId,
+          role: input.role ?? "MEMBER",
+        },
+      });
+    }),
+
+  /**
+   * Remove a member from a project
+   */
+  removeMember: publicProcedure
+    .input(z.object({
+      projectId: z.string(),
+      userId: z.string(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.projectMember.update({
+        where: {
+          projectId_userId: {
+            projectId: input.projectId,
+            userId: input.userId,
+          },
+        },
+        data: { deletedAt: new Date() },
       });
     }),
 });
-

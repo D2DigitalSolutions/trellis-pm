@@ -1,276 +1,379 @@
-import { PrismaClient, type Label } from "../src/generated/prisma";
+import { PrismaClient } from "../src/generated/prisma";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting database seed...");
+  console.log("🌱 Seeding database...");
 
-  // Clean existing data
-  await prisma.activityLog.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.task.deleteMany();
-  await prisma.label.deleteMany();
+  // Clean up existing data
+  await prisma.message.deleteMany();
+  await prisma.artifact.deleteMany();
+  await prisma.branch.deleteMany();
+  await prisma.workItemEdge.deleteMany();
+  await prisma.workItem.deleteMany();
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
   await prisma.user.deleteMany();
 
-  // Create users
-  const user1 = await prisma.user.create({
+  console.log("🧹 Cleaned up existing data");
+
+  // Create demo user
+  const demoUser = await prisma.user.create({
     data: {
-      email: "alex@example.com",
-      name: "Alex Johnson",
-      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex",
+      email: "demo@trellis.pm",
+      name: "Demo User",
+      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo",
     },
   });
 
-  const user2 = await prisma.user.create({
-    data: {
-      email: "sam@example.com",
-      name: "Sam Wilson",
-      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=sam",
-    },
-  });
+  console.log("👤 Created demo user:", demoUser.email);
 
-  const user3 = await prisma.user.create({
+  // Create demo project
+  const project = await prisma.project.create({
     data: {
-      email: "jordan@example.com",
-      name: "Jordan Lee",
-      avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=jordan",
-    },
-  });
-
-  console.log("✅ Created users");
-
-  // Create projects
-  const project1 = await prisma.project.create({
-    data: {
-      name: "Website Redesign",
-      description:
-        "Complete overhaul of the company website with modern design and improved UX",
-      slug: "website-redesign",
-      ownerId: user1.id,
+      name: "Trellis PM Development",
+      description: "Building the next-generation AI-powered project management tool",
+      slug: "trellis-pm-dev",
+      ownerId: demoUser.id,
       members: {
-        create: [
-          { userId: user1.id, role: "OWNER" },
-          { userId: user2.id, role: "MEMBER" },
-        ],
+        create: {
+          userId: demoUser.id,
+          role: "OWNER",
+        },
       },
-      labels: {
-        create: [
-          { name: "Frontend", color: "#3b82f6" },
-          { name: "Backend", color: "#10b981" },
-          { name: "Design", color: "#8b5cf6" },
-          { name: "Bug", color: "#ef4444" },
-          { name: "Feature", color: "#f59e0b" },
-        ],
-      },
-    },
-    include: {
-      labels: true,
     },
   });
 
-  const project2 = await prisma.project.create({
+  console.log("📁 Created project:", project.name);
+
+  // Create Epic work item
+  const epic = await prisma.workItem.create({
     data: {
-      name: "Mobile App MVP",
-      description: "First version of the mobile application for iOS and Android",
-      slug: "mobile-app-mvp",
-      ownerId: user2.id,
-      members: {
-        create: [
-          { userId: user2.id, role: "OWNER" },
-          { userId: user1.id, role: "ADMIN" },
-          { userId: user3.id, role: "MEMBER" },
-        ],
-      },
-      labels: {
-        create: [
-          { name: "iOS", color: "#000000" },
-          { name: "Android", color: "#4ade80" },
-          { name: "UI", color: "#ec4899" },
-          { name: "API", color: "#06b6d4" },
-        ],
-      },
-    },
-    include: {
-      labels: true,
+      type: "EPIC",
+      title: "AI-Powered Task Management",
+      description: "Implement AI features for intelligent task management and prioritization",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      projectId: project.id,
+      creatorId: demoUser.id,
+      assigneeId: demoUser.id,
     },
   });
 
-  console.log("✅ Created projects");
+  console.log("📌 Created epic:", epic.title);
 
-  // Get labels for project 1
-  const frontendLabel = project1.labels.find((l: Label) => l.name === "Frontend");
-  const backendLabel = project1.labels.find((l: Label) => l.name === "Backend");
-  const designLabel = project1.labels.find((l: Label) => l.name === "Design");
-  const featureLabel = project1.labels.find((l: Label) => l.name === "Feature");
+  // Create Sprint work item
+  const sprint = await prisma.workItem.create({
+    data: {
+      type: "SPRINT",
+      title: "Sprint 1: Foundation",
+      description: "Set up core infrastructure and basic AI integration",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      projectId: project.id,
+      creatorId: demoUser.id,
+    },
+  });
 
-  // Suppress unused variable warnings
-  void frontendLabel;
-  void backendLabel;
-  void designLabel;
-  void featureLabel;
+  // Create edge: Epic -> Sprint
+  await prisma.workItemEdge.create({
+    data: {
+      parentId: epic.id,
+      childId: sprint.id,
+      edgeType: "PARENT_CHILD",
+    },
+  });
 
-  // Create tasks for project 1
-  await prisma.task.createMany({
+  console.log("🏃 Created sprint:", sprint.title);
+
+  // Create Task work items
+  const task1 = await prisma.workItem.create({
+    data: {
+      type: "TASK",
+      title: "Design conversation branching system",
+      description: "Create the data model and UI for branching conversations",
+      status: "DONE",
+      priority: "HIGH",
+      position: 0,
+      projectId: project.id,
+      creatorId: demoUser.id,
+      assigneeId: demoUser.id,
+    },
+  });
+
+  const task2 = await prisma.workItem.create({
+    data: {
+      type: "TASK",
+      title: "Implement message streaming",
+      description: "Add real-time streaming for AI responses",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      position: 1,
+      projectId: project.id,
+      creatorId: demoUser.id,
+      assigneeId: demoUser.id,
+    },
+  });
+
+  const task3 = await prisma.workItem.create({
+    data: {
+      type: "TASK",
+      title: "Build artifact renderer",
+      description: "Create components to render different artifact types (Plan, Spec, Checklist, etc.)",
+      status: "OPEN",
+      priority: "MEDIUM",
+      position: 2,
+      projectId: project.id,
+      creatorId: demoUser.id,
+    },
+  });
+
+  // Create edges: Sprint -> Tasks
+  await prisma.workItemEdge.createMany({
+    data: [
+      { parentId: sprint.id, childId: task1.id, edgeType: "PARENT_CHILD" },
+      { parentId: sprint.id, childId: task2.id, edgeType: "PARENT_CHILD" },
+      { parentId: sprint.id, childId: task3.id, edgeType: "PARENT_CHILD" },
+    ],
+  });
+
+  console.log("✅ Created tasks:", task1.title, ",", task2.title, ",", task3.title);
+
+  // Create a Bug work item
+  const bug = await prisma.workItem.create({
+    data: {
+      type: "BUG",
+      title: "Message ordering incorrect after branch switch",
+      description: "Messages appear out of order when switching between branches",
+      status: "OPEN",
+      priority: "URGENT",
+      projectId: project.id,
+      creatorId: demoUser.id,
+    },
+  });
+
+  console.log("🐛 Created bug:", bug.title);
+
+  // Create an Idea work item
+  const idea = await prisma.workItem.create({
+    data: {
+      type: "IDEA",
+      title: "Voice input for task creation",
+      description: "Allow users to create tasks and interact with AI using voice",
+      status: "OPEN",
+      priority: "LOW",
+      projectId: project.id,
+      creatorId: demoUser.id,
+    },
+  });
+
+  console.log("💡 Created idea:", idea.title);
+
+  // Create a default branch for task2 (the in-progress task)
+  const mainBranch = await prisma.branch.create({
+    data: {
+      name: "main",
+      isDefault: true,
+      workItemId: task2.id,
+    },
+  });
+
+  console.log("🌿 Created main branch for task:", task2.title);
+
+  // Add some messages to the branch
+  const messages = await prisma.message.createMany({
     data: [
       {
-        title: "Design new homepage mockup",
-        description:
-          "Create wireframes and high-fidelity mockups for the new homepage design",
-        status: "DONE",
-        priority: "HIGH",
-        position: 0,
-        projectId: project1.id,
-        creatorId: user1.id,
-        assigneeId: user1.id,
+        role: "USER",
+        content: "How should we implement message streaming for AI responses?",
+        branchId: mainBranch.id,
+        userId: demoUser.id,
       },
       {
-        title: "Implement responsive navigation",
-        description:
-          "Build a mobile-first responsive navigation component with hamburger menu",
-        status: "IN_PROGRESS",
-        priority: "HIGH",
-        position: 0,
-        projectId: project1.id,
-        creatorId: user1.id,
-        assigneeId: user2.id,
+        role: "ASSISTANT",
+        content: `I recommend using Server-Sent Events (SSE) for streaming AI responses. Here's a high-level approach:
+
+1. **Backend**: Create an API endpoint that uses SSE to stream tokens from the AI provider
+2. **Frontend**: Use the \`fetch\` API with a ReadableStream to consume the SSE events
+3. **State Management**: Update the message content incrementally as tokens arrive
+
+This approach provides:
+- Real-time feedback to users
+- Lower perceived latency
+- Ability to cancel mid-stream if needed
+
+Would you like me to create a detailed implementation plan?`,
+        branchId: mainBranch.id,
+        metadata: { model: "claude-3", tokens: 150 },
       },
       {
-        title: "Set up CI/CD pipeline",
-        description:
-          "Configure GitHub Actions for automated testing and deployment",
-        status: "TODO",
-        priority: "MEDIUM",
-        position: 0,
-        projectId: project1.id,
-        creatorId: user1.id,
-        assigneeId: null,
+        role: "USER",
+        content: "Yes, please create a detailed plan as an artifact.",
+        branchId: mainBranch.id,
+        userId: demoUser.id,
       },
       {
-        title: "Optimize images for web",
-        description: "Compress and convert images to WebP format for better performance",
-        status: "TODO",
-        priority: "LOW",
-        position: 1,
-        projectId: project1.id,
-        creatorId: user2.id,
-        assigneeId: user1.id,
-      },
-      {
-        title: "Write API documentation",
-        description: "Document all REST endpoints using OpenAPI/Swagger",
-        status: "IN_REVIEW",
-        priority: "MEDIUM",
-        position: 0,
-        projectId: project1.id,
-        creatorId: user1.id,
-        assigneeId: user2.id,
+        role: "ASSISTANT",
+        content: "I've created a detailed implementation plan for the message streaming feature. You can find it in the artifacts section.",
+        branchId: mainBranch.id,
+        metadata: { model: "claude-3", tokens: 45 },
       },
     ],
   });
 
-  // Create tasks for project 2
-  await prisma.task.createMany({
-    data: [
-      {
-        title: "Set up React Native project",
-        description: "Initialize the React Native project with TypeScript and Expo",
-        status: "DONE",
-        priority: "HIGH",
-        position: 0,
-        projectId: project2.id,
-        creatorId: user2.id,
-        assigneeId: user2.id,
-      },
-      {
-        title: "Design authentication flow",
-        description: "Create login, register, and password reset screens",
-        status: "IN_PROGRESS",
-        priority: "HIGH",
-        position: 0,
-        projectId: project2.id,
-        creatorId: user2.id,
-        assigneeId: user3.id,
-      },
-      {
-        title: "Implement push notifications",
-        description: "Set up Firebase Cloud Messaging for push notifications",
-        status: "TODO",
-        priority: "MEDIUM",
-        position: 0,
-        projectId: project2.id,
-        creatorId: user2.id,
-        assigneeId: null,
-      },
-    ],
+  console.log("💬 Created", 4, "messages in branch");
+
+  // Create a forked branch (exploring alternative approach)
+  const forkBranch = await prisma.branch.create({
+    data: {
+      name: "websocket-approach",
+      isDefault: false,
+      workItemId: task2.id,
+      forkedFromId: mainBranch.id,
+      forkPointMessageId: null, // Would reference a specific message ID in production
+    },
   });
 
-  console.log("✅ Created tasks");
-
-  // Create some comments
-  const tasks = await prisma.task.findMany({
-    where: { projectId: project1.id },
-    take: 2,
+  // Add a message to the fork
+  await prisma.message.create({
+    data: {
+      role: "USER",
+      content: "What about using WebSockets instead of SSE? Would that be better?",
+      branchId: forkBranch.id,
+      userId: demoUser.id,
+    },
   });
 
-  if (tasks[0]) {
-    await prisma.comment.create({
-      data: {
-        content:
-          "Looking great! Just a few minor tweaks needed on the color palette.",
-        taskId: tasks[0].id,
-        authorId: user2.id,
-      },
-    });
-  }
+  await prisma.message.create({
+    data: {
+      role: "ASSISTANT",
+      content: `WebSockets could work, but SSE is generally better for this use case because:
 
-  if (tasks[1]) {
-    await prisma.comment.create({
-      data: {
-        content: "I've started working on this. Should be ready for review tomorrow.",
-        taskId: tasks[1].id,
-        authorId: user2.id,
-      },
-    });
-  }
+1. **Simpler**: SSE is built on HTTP, no special protocol handling
+2. **Auto-reconnect**: SSE handles reconnection automatically
+3. **One-way is sufficient**: AI streaming is server-to-client only
 
-  console.log("✅ Created comments");
+WebSockets shine when you need **bidirectional** real-time communication (like collaborative editing), but for AI streaming, SSE is more appropriate.
 
-  // Create activity logs
-  await prisma.activityLog.createMany({
-    data: [
-      {
-        action: "PROJECT_CREATED",
-        projectId: project1.id,
-        userId: user1.id,
-        metadata: { projectName: project1.name },
-      },
-      {
-        action: "TASK_CREATED",
-        projectId: project1.id,
-        userId: user1.id,
-        metadata: { taskTitle: "Design new homepage mockup" },
-      },
-      {
-        action: "MEMBER_ADDED",
-        projectId: project1.id,
-        userId: user1.id,
-        metadata: { memberName: user2.name },
-      },
-    ],
+That said, if you're already using WebSockets elsewhere in your app, consolidating on one protocol could reduce complexity.`,
+      branchId: forkBranch.id,
+      metadata: { model: "claude-3", tokens: 120 },
+    },
   });
 
-  console.log("✅ Created activity logs");
+  console.log("🔀 Created forked branch:", forkBranch.name);
 
-  console.log("🎉 Database seeding completed!");
+  // Create artifacts
+  const planArtifact = await prisma.artifact.create({
+    data: {
+      type: "PLAN",
+      title: "Message Streaming Implementation Plan",
+      content: {
+        phases: [
+          {
+            name: "Phase 1: Backend Setup",
+            tasks: [
+              "Create SSE endpoint at /api/ai/stream",
+              "Integrate with AI provider SDK",
+              "Implement token buffering",
+              "Add error handling and retry logic",
+            ],
+          },
+          {
+            name: "Phase 2: Frontend Integration",
+            tasks: [
+              "Create useStreamingMessage hook",
+              "Build StreamingMessageBubble component",
+              "Add loading and typing indicators",
+              "Implement cancel functionality",
+            ],
+          },
+          {
+            name: "Phase 3: Polish",
+            tasks: [
+              "Add markdown rendering for streamed content",
+              "Optimize re-renders during streaming",
+              "Add analytics for streaming performance",
+              "Write tests",
+            ],
+          },
+        ],
+        estimatedDays: 5,
+        dependencies: ["AI provider API key", "React Query setup"],
+      },
+      workItemId: task2.id,
+      branchId: mainBranch.id,
+    },
+  });
+
+  console.log("📋 Created plan artifact:", planArtifact.title);
+
+  const specArtifact = await prisma.artifact.create({
+    data: {
+      type: "SPEC",
+      title: "Streaming API Specification",
+      content: {
+        endpoint: "/api/ai/stream",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        requestBody: {
+          branchId: "string",
+          message: "string",
+        },
+        events: [
+          { type: "token", data: { content: "string" } },
+          { type: "done", data: { messageId: "string", totalTokens: "number" } },
+          { type: "error", data: { code: "string", message: "string" } },
+        ],
+      },
+      workItemId: task2.id,
+      branchId: mainBranch.id,
+    },
+  });
+
+  console.log("📄 Created spec artifact:", specArtifact.title);
+
+  const checklistArtifact = await prisma.artifact.create({
+    data: {
+      type: "CHECKLIST",
+      title: "Streaming Feature Checklist",
+      content: {
+        items: [
+          { id: 1, text: "SSE endpoint created", completed: true },
+          { id: 2, text: "AI provider integrated", completed: true },
+          { id: 3, text: "Frontend hook implemented", completed: false },
+          { id: 4, text: "Cancel functionality added", completed: false },
+          { id: 5, text: "Error handling tested", completed: false },
+          { id: 6, text: "Performance optimized", completed: false },
+        ],
+      },
+      workItemId: task2.id,
+      branchId: mainBranch.id,
+    },
+  });
+
+  console.log("☑️ Created checklist artifact:", checklistArtifact.title);
+
+  console.log("\n✨ Seeding complete!");
+  console.log("\n📊 Summary:");
+  console.log("   - 1 User");
+  console.log("   - 1 Project");
+  console.log("   - 6 Work Items (1 Epic, 1 Sprint, 3 Tasks, 1 Bug, 1 Idea)");
+  console.log("   - 4 Work Item Edges");
+  console.log("   - 2 Branches (1 main + 1 fork)");
+  console.log("   - 6 Messages");
+  console.log("   - 3 Artifacts (Plan, Spec, Checklist)");
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seeding failed:", e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

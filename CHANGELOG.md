@@ -8,6 +8,48 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 29, 2024
 
+#### Schema Redesign for AI-Powered Conversations ✅
+
+**Time:** Schema Update
+
+**Changes Made:**
+
+1. **New Data Model Design**
+   - Replaced simple Task model with flexible WorkItem model
+   - Added WorkItem types: EPIC, SPRINT, TASK, BUG, IDEA
+   - Implemented WorkItemEdge for parent-child relationships
+   - Added Branch model for conversation threading (with fork support)
+   - Added Message model with roles: USER, ASSISTANT, TOOL, SYSTEM
+   - Added Artifact model for structured outputs: PLAN, SPEC, CHECKLIST, DECISION, CODE, NOTE
+
+2. **Soft Delete Support**
+   - Added `deletedAt` field to all models
+   - Updated all queries to filter soft-deleted records by default
+   - Added restore endpoints for recoverable deletes
+
+3. **tRPC API Updates**
+   - New workItem router (CRUD + edges + reordering)
+   - New branch router (create, fork, set default)
+   - New message router (CRUD + pagination)
+   - New artifact router (CRUD with versioning)
+   - Updated project router with soft delete
+
+4. **React Hooks**
+   - useWorkItems, useWorkItem, useCreateWorkItem, etc.
+   - useBranches, useBranch, useCreateBranch
+   - useMessages, useCreateMessage, useUpdateMessage
+   - useArtifacts, useArtifact, useCreateArtifact
+
+5. **Seed Script**
+   - Demo project with full work item hierarchy
+   - Epic → Sprint → Tasks relationship
+   - Bug and Idea work items
+   - Main branch with forked conversation
+   - Sample messages (user + assistant)
+   - Sample artifacts (Plan, Spec, Checklist)
+
+---
+
 #### Initial Project Setup ✅
 
 **Time:** Project Initialization
@@ -52,59 +94,25 @@ This document tracks the development progress of Trellis PM, including all featu
        └── trpc/      # API routers
    ```
 
-5. **Database Schema (Prisma)**
-   - User model with authentication fields
-   - Project model with status tracking
-   - ProjectMember for team management
-   - Task model with status, priority, subtasks
-   - Label model for task categorization
-   - Comment model for task discussions
-   - ActivityLog for audit trail
-   - All necessary enums defined
-
-6. **tRPC API Layer**
-   - tRPC context with Prisma client
-   - Public and protected procedures
-   - Project router (CRUD operations)
-   - Task router (CRUD + reordering)
-   - App router combining all routers
-
-7. **Zod Validation Schemas**
-   - Project schemas (create, update)
-   - Task schemas (create, update)
-   - User schemas (create, update)
-   - Exported types for TypeScript
-
-8. **React Hooks**
-   - Project hooks (useProjects, useProject, useCreateProject, etc.)
-   - Task hooks (useTasks, useTask, useCreateTask, etc.)
-   - Automatic cache invalidation
-
-9. **UI Components (shadcn/ui)**
+5. **UI Components (shadcn/ui)**
    - Button, Card, Input, Label, Textarea
    - Select, Dialog, Dropdown Menu
    - Avatar, Badge, Separator
    - Sheet, Tabs, Sonner (toasts)
 
-10. **Landing Page**
-    - Modern dark theme design
-    - Gradient backgrounds with blur effects
-    - Hero section with CTA buttons
-    - Feature cards highlighting key functionality
-    - Responsive layout
+6. **Landing Page**
+   - Modern dark theme design
+   - Gradient backgrounds with blur effects
+   - Hero section with CTA buttons
+   - Feature cards highlighting key functionality
+   - Responsive layout
 
-11. **Documentation**
-    - README.md with complete setup instructions
-    - Local development guide
-    - Database setup (local & Docker options)
-    - Available npm scripts documented
-    - API usage examples
-
-12. **Seed Script**
-    - Sample users with avatars
-    - Sample projects with labels
-    - Sample tasks across different statuses
-    - Sample comments and activity logs
+7. **Documentation**
+   - README.md with complete setup instructions
+   - Local development guide
+   - Database setup (local & Docker options)
+   - Available npm scripts documented
+   - API usage examples
 
 ---
 
@@ -114,14 +122,15 @@ This document tracks the development progress of Trellis PM, including all featu
 |-----------|--------|------|
 | Project initialization | ✅ Complete | Dec 29, 2024 |
 | Database schema design | ✅ Complete | Dec 29, 2024 |
+| AI-ready schema redesign | ✅ Complete | Dec 29, 2024 |
 | tRPC API setup | ✅ Complete | Dec 29, 2024 |
 | UI component library | ✅ Complete | Dec 29, 2024 |
 | Landing page | ✅ Complete | Dec 29, 2024 |
 | Authentication | 🔲 Pending | - |
 | Dashboard page | 🔲 Pending | - |
-| Kanban board | 🔲 Pending | - |
-| Project management UI | 🔲 Pending | - |
-| Task management UI | 🔲 Pending | - |
+| Work item board (Kanban) | 🔲 Pending | - |
+| Conversation UI | 🔲 Pending | - |
+| Artifact renderer | 🔲 Pending | - |
 | AI integration | 🔲 Pending | - |
 | Production deployment | 🔲 Pending | - |
 
@@ -179,26 +188,32 @@ This document tracks the development progress of Trellis PM, including all featu
 2. **Dashboard**
    - Project overview cards
    - Recent activity feed
-   - Quick task creation
+   - Quick work item creation
    - Statistics and charts
 
-3. **Kanban Board**
-   - Drag-and-drop task management
+3. **Work Item Board**
+   - Drag-and-drop management
    - Column customization
-   - Task filtering and search
+   - Filtering and search
    - Keyboard shortcuts
 
-4. **Project Settings**
-   - Team member management
-   - Label customization
-   - Project archiving
-   - Danger zone (delete)
+4. **Conversation UI**
+   - Branch switching
+   - Message rendering with markdown
+   - Fork conversation support
+   - Real-time streaming
 
-5. **AI Features**
-   - Task prioritization suggestions
-   - Deadline predictions
-   - Workload balancing
-   - Smart task descriptions
+5. **Artifact Renderer**
+   - Plan visualization
+   - Checklist with completion tracking
+   - Code blocks with syntax highlighting
+   - Decision trees
+
+6. **AI Features**
+   - Claude/OpenAI integration
+   - Streaming responses
+   - Tool use support
+   - Context-aware suggestions
 
 ---
 
@@ -208,8 +223,21 @@ This document tracks the development progress of Trellis PM, including all featu
 - Dark theme by default with indigo/purple accent colors
 - Optimized for desktop-first with mobile responsive
 - PostgreSQL required for full functionality
+- Schema supports conversation branching like git
+
+---
+
+## 🗄️ Database Schema Overview
+
+```
+Project
+  └── WorkItem (EPIC, SPRINT, TASK, BUG, IDEA)
+        ├── WorkItemEdge (parent-child relationships)
+        ├── Branch (conversation threads)
+        │     └── Message (USER, ASSISTANT, TOOL, SYSTEM)
+        └── Artifact (PLAN, SPEC, CHECKLIST, DECISION, CODE, NOTE)
+```
 
 ---
 
 *Last updated: December 29, 2024*
-
