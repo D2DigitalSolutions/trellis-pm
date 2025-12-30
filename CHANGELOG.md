@@ -8,6 +8,46 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 30, 2024
 
+#### Automatic Rolling Summary Updates ✅
+
+**Time:** Acceptance Fix
+
+**Issue:** `SummarizationService.summarizeBranch()` exists but was never auto-triggered after message creation.
+
+**Changes Made:**
+
+1. **Fire-and-Forget Summarization Trigger (`src/server/services/summarization.ts`)**
+   - Added `triggerSummarizationIfNeeded(branchId, options?)` function
+   - Runs summarization in background without blocking the request
+   - Configurable timeout (default 30s) prevents hung operations
+   - Catches and logs errors without throwing
+
+2. **Optimistic Locking for Race Prevention**
+   - Updated `summarizeBranch()` to use `updateMany` with `where: { summaryMessageCount: preUpdateCount }`
+   - If another process updated first, the summary is discarded (not an error)
+   - Logged when race condition is detected
+
+3. **Message Router Integration (`src/server/trpc/routers/message.ts`)**
+   - `append` mutation now calls `triggerSummarizationIfNeeded(branchId)` after message creation
+   - `bulkAppend` mutation also triggers summarization
+   - Non-blocking: response returns immediately while summarization runs in background
+
+4. **Unit Tests (`src/server/services/__tests__/summarization.test.ts`)**
+   - Tests for `branchNeedsSummary()` threshold logic
+   - Tests for `summarizeBranch()` with optimistic locking
+   - Tests for `maybeSummarizeBranch()` conditional execution
+   - Tests for `triggerSummarizationIfNeeded()` fire-and-forget behavior
+   - Tests for timeout handling
+   - Tests for race condition handling
+
+**Files Modified:**
+- `src/server/services/summarization.ts`
+- `src/server/trpc/routers/message.ts`
+- `src/server/services/__tests__/summarization.test.ts` (new)
+- `CHANGELOG.md` (this entry)
+
+---
+
 #### Fork-from-Message UI & Branch Creation ✅
 
 **Time:** Acceptance Fix

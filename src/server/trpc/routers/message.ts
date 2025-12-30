@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 import { TRPCError } from "@trpc/server";
+import { triggerSummarizationIfNeeded } from "@/server/services/summarization";
 
 // ============================================
 // Enums & Shared Schemas
@@ -282,6 +283,10 @@ export const messageRouter = createTRPCRouter({
         },
       });
 
+      // Trigger background summarization if needed (fire-and-forget)
+      // This won't block the response - runs in background with timeout
+      triggerSummarizationIfNeeded(input.branchId);
+
       return message;
     }),
 
@@ -405,6 +410,9 @@ export const messageRouter = createTRPCRouter({
           metadata: msg.metadata,
         })),
       });
+
+      // Trigger background summarization if needed (fire-and-forget)
+      triggerSummarizationIfNeeded(input.branchId);
 
       return { count: created.count };
     }),

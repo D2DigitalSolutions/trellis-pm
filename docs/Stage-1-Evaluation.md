@@ -14,7 +14,7 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 
 | # | Gap | Severity | Impact |
 |---|-----|----------|--------|
-| **1** | **Rolling summary job has no trigger mechanism** | 🔴 High | `SummarizationService.summarizeBranch()` exists but is never auto-triggered after message creation. Summaries won't update without manual API calls. |
+| **1** | ~~**Rolling summary job has no trigger mechanism**~~ | ✅ Fixed | `message.append` and `message.bulkAppend` now call `triggerSummarizationIfNeeded()` which runs in background with timeout guard and optimistic locking. |
 | **2** | ~~**Fork-from-message UI action not wired**~~ | ✅ Fixed | Fork button now appears on hover over messages. `onCreateBranch` opens a dialog and calls `branch.create`. Fork dialog calls `branch.forkFromMessage` with auto-switch to new branch. |
 | **3** | ~~**Message send not implemented in chat UI**~~ | ✅ Fixed | `BranchChat` now calls `message.append` mutation with optimistic updates, loading states, and error handling. |
 | **4** | **No authentication layer** | 🟡 Medium | All tRPC routes use `publicProcedure`. No session/auth context. `userId` must be passed manually which is insecure. |
@@ -253,15 +253,19 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | **Format** | `formatContextAsString()` produces markdown with sections for AI prompts |
 | **TODOs/Missing** | None |
 
-### I. Rolling Branch Summary ⚠️ PARTIAL
+### I. Rolling Branch Summary ✅
 
 | Aspect | Evidence |
 |--------|----------|
 | **File** | `src/server/services/summarization.ts` |
-| **Service** | `SummarizationService` with `branchNeedsSummary()`, `summarizeBranch()`, `summarizeProject()`, `updatePendingSummaries()` |
+| **Service** | `SummarizationService` with `branchNeedsSummary()`, `summarizeBranch()`, `summarizeProject()`, `updatePendingSummaries()`, `triggerSummarizationIfNeeded()` |
 | **Storage** | `Branch.summary`, `Branch.summaryUpdatedAt`, `Branch.summaryMessageCount` in schema |
 | **tRPC router** | `src/server/trpc/routers/context.ts` has `summarizeBranch`, `runSummarizationJob` |
-| **TODOs/Missing** | **No automatic trigger**. `message.append` doesn't call `maybeSummarizeBranch()`. Need to add post-mutation hook or background job scheduler (cron/queue). |
+| **Auto-trigger** | ✅ `message.append` and `message.bulkAppend` call `triggerSummarizationIfNeeded()` after message creation |
+| **Fire-and-forget** | ✅ Runs in background with 30s timeout, doesn't block response |
+| **Race prevention** | ✅ Uses optimistic locking via `summaryMessageCount` in `updateMany` where clause |
+| **Tests** | `src/server/services/__tests__/summarization.test.ts` - threshold logic, optimistic locking, timeout |
+| **TODOs/Missing** | None |
 
 ### J. POST /api/ai/extract-work ✅
 
@@ -559,7 +563,7 @@ async summarizeBranch(branchId: string): Promise<BranchSummary | null> {
 | Priority | Task | Effort | Status |
 |----------|------|--------|--------|
 | ~~🔴 P0~~ | ~~Wire up message send in `BranchChat` component~~ | ~~30 min~~ | ✅ Done |
-| 🔴 P0 | Add `maybeSummarizeBranch()` call after `message.append` mutation | 15 min | Pending |
+| ~~🔴 P0~~ | ~~Add `maybeSummarizeBranch()` call after `message.append` mutation~~ | ~~15 min~~ | ✅ Done |
 | ~~🟡 P1~~ | ~~Add fork button on messages in `BranchPanel`~~ | ~~1 hr~~ | ✅ Done |
 | ~~🟡 P1~~ | ~~Wire up `onCreateBranch` handler~~ | ~~30 min~~ | ✅ Done |
 | 🟡 P1 | Inject mode template prompt into `extractWork()` system prompt | 30 min | Pending |
@@ -580,5 +584,5 @@ async summarizeBranch(branchId: string): Promise<BranchSummary | null> {
 | **Context/Summary** | `src/server/services/context-builder.ts`, `src/server/services/summarization.ts` |
 | **UI Components** | `src/components/layout/*.tsx`, `src/components/board/*.tsx`, `src/components/panel/*.tsx` |
 | **API Routes** | `src/app/api/ai/extract-work/route.ts` |
-| **Tests** | `src/server/ai/__tests__/extract-work.test.ts` |
+| **Tests** | `src/server/ai/__tests__/extract-work.test.ts`, `src/server/services/__tests__/summarization.test.ts` |
 

@@ -147,6 +147,10 @@ export class SummarizationService {
       ? `Previous summary: ${branch.summary}\n\n` 
       : "";
 
+    // Store the message count before we start summarizing
+    // This is used for optimistic locking
+    const preUpdateMessageCount = branch.summaryMessageCount;
+
     // Generate summary using AI
     try {
       const result = await this.provider.generateStructured({
@@ -174,16 +178,27 @@ Be concise but comprehensive.`,
         model: this.config.model,
       });
 
-      // Store the summary
+      // Store the summary using optimistic locking
+      // Only update if no one else has updated since we started
       const summaryText = this.formatBranchSummary(result.data);
-      await db.branch.update({
-        where: { id: branchId },
+      const updateResult = await db.branch.updateMany({
+        where: { 
+          id: branchId,
+          // Optimistic lock: only update if summaryMessageCount hasn't changed
+          summaryMessageCount: preUpdateMessageCount,
+        },
         data: {
           summary: summaryText,
           summaryUpdatedAt: new Date(),
           summaryMessageCount: branch.messages.length,
         },
       });
+
+      if (updateResult.count === 0) {
+        // Another process updated first - this is fine, our summary is stale
+        console.log(`Summarization for branch ${branchId} was superseded by another process`);
+        return null;
+      }
 
       return result.data;
     } catch (error) {
@@ -399,5 +414,77 @@ export async function maybeSummarizeBranch(branchId: string): Promise<boolean> {
   }
   
   return false;
+}
+
+/**
+ * Trigger summarization for a branch if needed (fire-and-forget with timeout)
+ * This is safe to call without awaiting - it won't block the request
+ * Uses optimistic locking via summaryMessageCount to prevent race conditions
+ */
+export function triggerSummarizationIfNeeded(
+  branchId: string, 
+  options: { timeoutMs?: number } = {}
+): void {
+  const { timeoutMs = 30000 } = options;
+  
+  // Create a promise that races the summarization against a timeout
+  const summarizationPromise = (async () => {
+    try {
+      const service = new SummarizationService();
+      
+      // Quick check if summarization is needed
+      if (!(await service.branchNeedsSummary(branchId))) {
+        return;
+      }
+      
+      // Get current branch state for optimistic locking
+      const branch = await db.branch.findUnique({
+        where: { id: branchId },
+        select: {
+          id: true,
+          summaryMessageCount: true,
+          _count: { select: { messages: true } },
+        },
+      });
+      
+      if (!branch) return;
+      
+      const expectedMessageCount = branch.summaryMessageCount;
+      
+      // Generate summary
+      const result = await service.summarizeBranch(branchId);
+      
+      if (result) {
+        // Use optimistic locking: only update if no one else has updated since we started
+        // This is now handled inside summarizeBranch, but we do an extra check here
+        const updatedBranch = await db.branch.findUnique({
+          where: { id: branchId },
+          select: { summaryMessageCount: true },
+        });
+        
+        // If the count is different from what we just set, another process beat us
+        // This is fine - we just log and move on
+        if (updatedBranch && updatedBranch.summaryMessageCount !== branch._count.messages) {
+          console.log(`Summarization race detected for branch ${branchId}, result may have been superseded`);
+        }
+      }
+    } catch (error) {
+      // Log but don't throw - this is fire-and-forget
+      console.error(`Background summarization failed for branch ${branchId}:`, error);
+    }
+  })();
+  
+  // Create timeout promise
+  const timeoutPromise = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn(`Summarization for branch ${branchId} timed out after ${timeoutMs}ms`);
+      resolve();
+    }, timeoutMs);
+  });
+  
+  // Race them - we don't await, just let it run in background
+  Promise.race([summarizationPromise, timeoutPromise]).catch((error) => {
+    console.error(`Unexpected error in background summarization for branch ${branchId}:`, error);
+  });
 }
 
