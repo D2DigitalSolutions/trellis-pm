@@ -144,6 +144,21 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## 🛠️ Dev Panel
+
+A development-only panel is available at [http://localhost:3000/dev](http://localhost:3000/dev) for manual verification of AI features.
+
+**Features:**
+- **AI Provider Status**: Shows which provider is active (OpenAI, XAI, Ollama)
+- **Project & Mode Template**: View project mode templates and AI system prompts
+- **Generate Branch Summary**: Manually trigger summarization for any branch
+- **Extract Work Items**: Test the extract-work AI endpoint with sample text
+
+**Usage:**
+1. Run `npm run db:seed` to create demo data
+2. Run `npm run db:studio` to get branch IDs
+3. Open the dev panel and paste branch IDs to test AI features
+
 ## 📜 Available Scripts
 
 | Command | Description |

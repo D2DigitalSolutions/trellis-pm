@@ -8,6 +8,50 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 30, 2024
 
+#### Dev Panel for Manual Verification ✅
+
+**Time:** Developer Tools
+
+**Purpose:** Provide a simple UI for validating AI wiring end-to-end without needing auth.
+
+**Features Added:**
+
+1. **AI Provider Status Card**
+   - Shows currently active provider (OpenAI, XAI, Ollama, or None)
+   - Lists all providers with availability status
+   - Refresh button to reload status
+
+2. **Project & Mode Template Card**
+   - Dropdown to select a project
+   - Shows mode template name and AI system prompt
+   - Visual indicator when no template assigned
+
+3. **Generate Branch Summary Card**
+   - Text input for branch ID
+   - "Generate Summary Now" button
+   - Displays JSON response or error
+   - Uses `useSummarizeBranch` hook with `force: true`
+
+4. **Extract Work Card**
+   - Text input for branch ID
+   - Textarea for user text (pre-filled with sample)
+   - "Run Extract Work" button
+   - Displays structured JSON response
+   - Uses `useExtractWork` hook
+
+5. **Quick Links**
+   - Dashboard, Prisma Studio, tRPC Playground
+
+6. **Instructions Panel**
+   - Step-by-step guide for using the panel
+
+**Access:** http://localhost:3000/dev (no auth required)
+
+**Files Created:**
+- `src/app/dev/page.tsx`
+
+---
+
 #### Extract Work Mode Template Prompt Injection ✅
 
 **Time:** Acceptance Fix

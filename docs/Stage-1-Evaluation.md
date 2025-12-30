@@ -397,6 +397,16 @@ npm run dev
 
 #### Test 4: Test Extract-Work Endpoint
 
+**Option A: Use Dev Panel (Recommended)**
+```
+1. Navigate to http://localhost:3000/dev
+2. Get a branch ID from Prisma Studio (npm run db:studio)
+3. Paste branch ID in "Extract Work Items" card
+4. Click "Run Extract Work"
+5. EXPECTED: JSON response with workItemsToCreate, artifactsToCreate, suggestedNextActions
+```
+
+**Option B: Use curl**
 ```bash
 # First, get a valid branchId from the database
 curl -X POST http://localhost:3000/api/ai/extract-work \
@@ -411,6 +421,17 @@ curl -X POST http://localhost:3000/api/ai/extract-work \
 
 #### Test 5: Test Summarization Endpoint
 
+**Option A: Use Dev Panel (Recommended)**
+```
+1. Navigate to http://localhost:3000/dev
+2. Get a branch ID from Prisma Studio (npm run db:studio)
+3. Paste branch ID in "Generate Branch Summary" card
+4. Click "Generate Summary Now"
+5. EXPECTED: JSON response with summary, keyDecisions, openQuestions, nextSteps
+# NOTE: Requires AI provider configured (OPENAI_API_KEY or similar)
+```
+
+**Option B: Use curl**
 ```bash
 # Using tRPC directly via fetch
 curl -X POST http://localhost:3000/api/trpc/context.summarizeBranch \
