@@ -47,7 +47,102 @@ trellis-pm/
 └── eslint.config.mjs      # ESLint configuration
 ```
 
-## 🛠️ Local Development Setup
+## ⚡ Quick Start (Copy-Paste Commands)
+
+These are the exact commands to get Trellis PM running locally. Copy and paste them in order.
+
+### Windows (PowerShell)
+
+```powershell
+# 1. Clone and install
+git clone https://github.com/D2DigitalSolutions/trellis-pm.git
+cd trellis-pm
+npm install
+
+# 2. Start PostgreSQL with Docker
+docker run --name trellis-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=trellis_pm -p 5432:5432 -d postgres:16-alpine
+
+# 3. Create .env.local file
+@"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trellis_pm?schema=public"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# AI Provider (choose one)
+AI_PROVIDER="openai"
+OPENAI_API_KEY="your-openai-key-here"
+
+# Or use XAI (Grok)
+# AI_PROVIDER="xai"
+# XAI_API_KEY="your-xai-key-here"
+
+# Or use Ollama (local)
+# AI_PROVIDER="ollama"
+# OLLAMA_ENABLED="true"
+# OLLAMA_BASE_URL="http://localhost:11434"
+"@ | Out-File -FilePath .env.local -Encoding utf8
+
+# 4. Setup database
+npm run db:generate
+npm run db:push
+npm run db:seed
+
+# 5. Run the app
+npm run dev
+```
+
+### macOS / Linux (Bash)
+
+```bash
+# 1. Clone and install
+git clone https://github.com/D2DigitalSolutions/trellis-pm.git
+cd trellis-pm
+npm install
+
+# 2. Start PostgreSQL with Docker
+docker run --name trellis-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=trellis_pm \
+  -p 5432:5432 \
+  -d postgres:16-alpine
+
+# 3. Create .env.local file
+cat > .env.local << 'EOF'
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trellis_pm?schema=public"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# AI Provider (choose one)
+AI_PROVIDER="openai"
+OPENAI_API_KEY="your-openai-key-here"
+
+# Or use XAI (Grok)
+# AI_PROVIDER="xai"
+# XAI_API_KEY="your-xai-key-here"
+
+# Or use Ollama (local)
+# AI_PROVIDER="ollama"
+# OLLAMA_ENABLED="true"
+# OLLAMA_BASE_URL="http://localhost:11434"
+EOF
+
+# 4. Setup database
+npm run db:generate
+npm run db:push
+npm run db:seed
+
+# 5. Run the app
+npm run dev
+```
+
+### After Starting
+
+1. **Dashboard**: http://localhost:3000/dashboard
+2. **Dev Panel**: http://localhost:3000/dev
+3. **Prisma Studio**: `npm run db:studio` → http://localhost:5555
+
+---
+
+## 🛠️ Local Development Setup (Detailed)
 
 ### Prerequisites
 
@@ -58,7 +153,7 @@ trellis-pm/
 ### 1. Clone and Install Dependencies
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/D2DigitalSolutions/trellis-pm.git
 cd trellis-pm
 npm install
 ```
@@ -342,6 +437,104 @@ function MessageActions({ messageId }: { messageId: string }) {
 - **Create Branch Button**: Opens dialog to create a new empty branch
 - **Fork Button**: Appears on hover over messages in the chat
 - **Auto-switch**: After creating/forking, automatically switches to the new branch
+
+## 🧪 Manual Test Scripts
+
+Use these step-by-step scripts to verify the main features work correctly.
+
+### Test 1: Message Sending
+
+1. Open http://localhost:3000/dashboard
+2. Click on "Demo Project" in the sidebar
+3. Click on any work item (e.g., "User Authentication Epic")
+4. The right panel shows the branch chat
+5. Type "Hello, this is a test message" in the input
+6. Press Enter
+7. **Expected**: Message appears immediately, input clears, loading spinner shows briefly
+
+### Test 2: Fork from Message
+
+1. Complete Test 1 first (need messages in chat)
+2. Hover over any message in the chat
+3. Click the "..." button that appears
+4. Click "Fork from here"
+5. **Expected**: Dialog opens with default name "fork-[timestamp]"
+6. Click "Create Fork"
+7. **Expected**: Toast shows "Forked to branch...", branch list updates, new branch selected
+
+### Test 3: Create New Branch
+
+1. Open http://localhost:3000/dashboard
+2. Select a project and work item
+3. Click "+ New Branch" button in the right panel header
+4. Enter name "test-branch"
+5. Click "Create"
+6. **Expected**: New branch appears in list and is auto-selected
+
+### Test 4: Rolling Summary (Automatic)
+
+1. Open http://localhost:3000/dev
+2. Copy a branch ID from the "Summarize Branch" section (use Prisma Studio to find one)
+3. Send 5+ messages to that branch via the dashboard
+4. Wait 10 seconds
+5. Go back to dev panel and click "Generate Summary"
+6. **Expected**: Summary reflects the new messages
+
+### Test 5: Extract Work Items (AI)
+
+1. Open http://localhost:3000/dev
+2. In the "Extract Work" section, enter a branch ID
+3. Enter this sample text:
+   ```
+   We need to build a user dashboard that shows their recent activity. 
+   It should include a chart of tasks completed per day, a list of 
+   notifications, and a quick-add button for new tasks. The chart 
+   should use Chart.js and be responsive.
+   ```
+4. Click "Extract Work Items"
+5. **Expected**: JSON response with:
+   - `workItemsToCreate`: Array with tasks like "Build user dashboard", "Implement activity chart"
+   - `artifactsToCreate`: Array with specs/plans
+   - `suggestedNextActions`: Array with next steps
+
+### Test 6: Mode Template Integration
+
+1. Run `npm run db:seed` to ensure templates exist
+2. Open Prisma Studio: `npm run db:studio`
+3. Go to Project table
+4. Note the `modeTemplateId` of "Demo Project" (should be "Agile Sprint")
+5. Open http://localhost:3000/dev
+6. Select "Demo Project"
+7. **Expected**: Shows "Agile Sprint" as the mode template
+8. Run Extract Work with the sample text from Test 5
+9. **Expected**: Extracted items follow agile patterns (sprints, story points, etc.)
+
+---
+
+## 🔒 Security Considerations
+
+### Authentication Status
+
+**Current State:** Authentication is **intentionally deferred** for the MVP phase.
+
+**Rationale:**
+- Focus on core AI-powered project management features first
+- Reduce complexity during initial development
+- Enable rapid prototyping and testing
+
+**Guardrails in Place:**
+1. All API routes use tRPC's type-safe procedures with Zod validation
+2. Database operations use Prisma's parameterized queries (SQL injection safe)
+3. AI prompts include explicit security rules against prompt injection
+4. Dev panel is clearly marked as dev-only
+
+**Planned for Production:**
+- NextAuth.js integration with session-based auth
+- Role-based access control (OWNER, ADMIN, MEMBER, VIEWER)
+- API route protection middleware
+- Rate limiting on AI endpoints
+
+---
 
 ## 📝 License
 
