@@ -51,44 +51,103 @@ trellis-pm/
 
 These are the exact commands to get Trellis PM running locally. Copy and paste them in order.
 
-### Windows (PowerShell)
+### Windows (PowerShell) - Local PostgreSQL
+
+**Step 1: Install PostgreSQL**
+
+Download and install from: https://www.postgresql.org/download/windows/
+
+During installation:
+- Remember the password you set for the `postgres` user (e.g., `postgres`)
+- Keep the default port `5432`
+- ✅ Check "Add to PATH" if prompted
+
+**Step 2: Clone and Install**
 
 ```powershell
-# 1. Clone and install
+git clone https://github.com/D2DigitalSolutions/trellis-pm.git
+cd trellis-pm
+npm install
+```
+
+> **Already cloned?** Just run `cd trellis-pm` and `npm install`
+
+**Step 3: Create the Database**
+
+After PostgreSQL is installed, open **pgAdmin** (comes with PostgreSQL):
+
+1. Open pgAdmin from Start Menu
+2. Connect to your local server (enter your postgres password)
+3. Right-click "Databases" → Create → Database
+4. Name: `trellis_pm` → Click Save
+
+Or use SQL Shell (psql) from Start Menu:
+```sql
+CREATE DATABASE trellis_pm;
+\q
+```
+
+**Step 4: Create `.env.local` File**
+
+Create a file named `.env.local` in the project root with this content:
+
+```env
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/trellis_pm?schema=public"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# AI Provider - choose ONE of these options:
+
+# Option 1: OpenAI (recommended)
+AI_PROVIDER="openai"
+OPENAI_API_KEY="sk-your-openai-key-here"
+
+# Option 2: XAI (Grok)
+# AI_PROVIDER="xai"
+# XAI_API_KEY="your-xai-key-here"
+
+# Option 3: Ollama (free, local)
+# AI_PROVIDER="ollama"
+# OLLAMA_ENABLED="true"
+# OLLAMA_BASE_URL="http://localhost:11434"
+```
+
+> ⚠️ Replace `YOUR_PASSWORD` with your PostgreSQL password!
+
+**Step 5: Setup Database and Run**
+
+```powershell
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+**Step 6: Open the App**
+
+- Dashboard: http://localhost:3000/dashboard
+- Dev Panel: http://localhost:3000/dev
+
+---
+
+### Windows (PowerShell) - Docker Option
+
+If you have Docker Desktop installed:
+
+```powershell
 git clone https://github.com/D2DigitalSolutions/trellis-pm.git
 cd trellis-pm
 npm install
 
-# 2. Start PostgreSQL with Docker
 docker run --name trellis-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=trellis_pm -p 5432:5432 -d postgres:16-alpine
 
-# 3. Create .env.local file
-@"
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trellis_pm?schema=public"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# Create .env.local with DATABASE_URL="postgresql://postgres:postgres@localhost:5432/trellis_pm?schema=public"
+notepad .env.local
 
-# AI Provider (choose one)
-AI_PROVIDER="openai"
-OPENAI_API_KEY="your-openai-key-here"
-
-# Or use XAI (Grok)
-# AI_PROVIDER="xai"
-# XAI_API_KEY="your-xai-key-here"
-
-# Or use Ollama (local)
-# AI_PROVIDER="ollama"
-# OLLAMA_ENABLED="true"
-# OLLAMA_BASE_URL="http://localhost:11434"
-"@ | Out-File -FilePath .env.local -Encoding utf8
-
-# 4. Setup database
-npm run db:generate
 npm run db:push
 npm run db:seed
-
-# 5. Run the app
 npm run dev
 ```
+
+---
 
 ### macOS / Linux (Bash)
 
@@ -98,7 +157,7 @@ git clone https://github.com/D2DigitalSolutions/trellis-pm.git
 cd trellis-pm
 npm install
 
-# 2. Start PostgreSQL with Docker
+# 2. Start PostgreSQL with Docker (or use local install)
 docker run --name trellis-postgres \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres \
@@ -114,19 +173,9 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 # AI Provider (choose one)
 AI_PROVIDER="openai"
 OPENAI_API_KEY="your-openai-key-here"
-
-# Or use XAI (Grok)
-# AI_PROVIDER="xai"
-# XAI_API_KEY="your-xai-key-here"
-
-# Or use Ollama (local)
-# AI_PROVIDER="ollama"
-# OLLAMA_ENABLED="true"
-# OLLAMA_BASE_URL="http://localhost:11434"
 EOF
 
 # 4. Setup database
-npm run db:generate
 npm run db:push
 npm run db:seed
 
