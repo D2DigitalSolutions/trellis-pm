@@ -13,7 +13,6 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Collapsible,
   CollapsibleContent,
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useProjects, useWorkItems } from "@/lib/hooks";
+import { CreateProjectModal } from "@/components/modals/create-project-modal";
 
 // ============================================
 // Types
@@ -92,7 +92,7 @@ function WorkItemTreeNode({
             ? "bg-indigo-500/20 text-white"
             : "text-slate-400 hover:bg-white/5 hover:text-white"
         )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        style={{ marginLeft: `${level * 16}px` }}
         onClick={() => onSelect(item.id)}
       >
         {hasChildren ? (
@@ -101,7 +101,7 @@ function WorkItemTreeNode({
               e.stopPropagation();
               setIsOpen(!isOpen);
             }}
-            className="p-0.5 hover:bg-white/10 rounded"
+            className="p-0.5 hover:bg-white/10 rounded flex-shrink-0"
           >
             {isOpen ? (
               <ChevronDown className="w-3 h-3" />
@@ -110,9 +110,9 @@ function WorkItemTreeNode({
             )}
           </button>
         ) : (
-          <span className="w-4" />
+          <span className="w-4 flex-shrink-0" />
         )}
-        <Icon className={cn("w-4 h-4", colorClass)} />
+        <Icon className={cn("w-4 h-4 flex-shrink-0", colorClass)} />
         <span className="truncate text-sm flex-1">{item.title}</span>
       </div>
 
@@ -199,11 +199,11 @@ function ProjectSection({
   const tree = buildTree(workItems);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-1">
       <CollapsibleTrigger asChild>
         <div
           className={cn(
-            "flex items-center gap-2 py-2 px-3 cursor-pointer transition-colors",
+            "flex items-center gap-2 py-2 px-2 cursor-pointer transition-colors rounded",
             isSelected
               ? "bg-indigo-500/10 border-l-2 border-indigo-500"
               : "hover:bg-white/5 border-l-2 border-transparent"
@@ -213,22 +213,22 @@ function ProjectSection({
             onProjectSelect(project.id);
           }}
         >
-          <FolderKanban className="w-4 h-4 text-indigo-400" />
+          <FolderKanban className="w-4 h-4 text-indigo-400 flex-shrink-0" />
           <span className="font-medium text-sm text-white flex-1 truncate">
             {project.name}
           </span>
           {isOpen ? (
-            <ChevronDown className="w-4 h-4 text-slate-500" />
+            <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
           )}
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-2">
+      <CollapsibleContent>
         {isLoading ? (
-          <div className="py-2 px-4 text-xs text-slate-500">Loading...</div>
+          <div className="py-2 px-2 text-xs text-slate-500">Loading...</div>
         ) : tree.length === 0 ? (
-          <div className="py-2 px-4 text-xs text-slate-500">No work items</div>
+          <div className="py-2 px-2 text-xs text-slate-500">No work items</div>
         ) : (
           tree.map((item) => (
             <WorkItemTreeNode
@@ -256,46 +256,47 @@ export function ProjectSidebar({
   onCreateProject,
 }: ProjectSidebarProps) {
   const { data: projects, isLoading } = useProjects();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  const handleCreateSuccess = (projectId: string) => {
+    onProjectSelect(projectId);
+  };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 border-r border-white/5">
+    <div className="h-full flex flex-col bg-slate-950">
       {/* Header */}
-      <div className="p-4 border-b border-white/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+      <div className="px-4 py-4 border-b border-white/5 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-xs">T</span>
             </div>
             <span className="font-semibold text-white">Trellis</span>
           </div>
-          {onCreateProject && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10"
-              onClick={onCreateProject}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-slate-400 hover:text-white hover:bg-white/10 flex-shrink-0"
+            onClick={() => setCreateModalOpen(true)}
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
       {/* Projects List */}
-      <ScrollArea className="flex-1">
-        <div className="py-2">
-          <div className="px-3 py-2">
-            <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              Projects
-            </h3>
-          </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 py-3">
+          <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+            Projects
+          </h3>
 
           {isLoading ? (
-            <div className="px-4 py-8 text-center text-slate-500 text-sm">
+            <div className="py-8 text-center text-slate-500 text-sm">
               Loading projects...
             </div>
           ) : !projects || projects.length === 0 ? (
-            <div className="px-4 py-8 text-center">
+            <div className="py-8 text-center">
               <p className="text-slate-500 text-sm mb-3">No projects yet</p>
               {onCreateProject && (
                 <Button
@@ -322,7 +323,14 @@ export function ProjectSidebar({
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   );
 }

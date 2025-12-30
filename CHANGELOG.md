@@ -8,6 +8,77 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 30, 2024
 
+#### Mode-Based Workspace (MVP Milestone) ✅
+
+**Time:** Feature Enhancement
+
+**Purpose:** Make Trellis feel mode-based and non-linear with project templates and multiple workspace views.
+
+**Features Added:**
+
+1. **Project Creation Modal**
+   - New Project button in sidebar opens modal
+   - Required fields: Project name, Mode Template dropdown
+   - Description field (optional)
+   - Persists selected `modeTemplateId` to Project record
+   - Auto-selects "Agile Sprint" as default template
+
+2. **Mode Badge in Header**
+   - Displays current mode template name as badge
+   - Format: "Project Name — [Mode Badge]"
+   - Badge uses secondary variant styling
+   - Shows for all projects with templates
+
+3. **Workspace View Switcher**
+   - Segmented control in header with Board/Mind Map tabs
+   - Icons: LayoutGrid for Board, Network for Mind Map
+   - Completely replaces center workspace content
+   - No Kanban visible in Mind Map view
+
+4. **Mind Map View (Placeholder)**
+   - Coming soon state with description
+   - Empty state CTA: "Add Work Item"
+   - Explains non-linear thinking benefits
+   - Will support full graph visualization
+
+5. **LocalStorage Persistence**
+   - Saves last-selected view per project
+   - Key format: `trellis-view-{projectId}`
+   - Loads saved view on project switch
+   - Falls back to "board" if no saved preference
+
+6. **Enhanced Empty States**
+   - Welcome screen explains mode templates
+   - Cards for each template: Agile, Lean, Brainstorm
+   - Clear CTAs to create first project
+   - Mind Map empty state with feature preview
+
+**Files Created:**
+- `src/components/modals/create-project-modal.tsx` - Project creation with template selection
+- `src/components/modals/index.ts` - Modal exports
+- `src/components/views/mind-map-view.tsx` - Mind Map workspace view
+- `src/components/views/index.ts` - View exports
+
+**Files Modified:**
+- `src/components/layout/dashboard-layout.tsx` - View switcher, localStorage, mode badge
+- `src/components/layout/project-sidebar.tsx` - Create Project button integration
+- `CHANGELOG.md` - This update
+
+**Integration:**
+- Uses existing tRPC routes (`project.create`, `modeTemplate.getAll`)
+- Leverages existing `Badge`, `Tabs`, `Dialog`, `Select` components
+- No backend changes required
+
+**Manual Test Results:**
+✅ Create new project with Brainstorm Map → shows badge
+✅ Switch to Mind Map → hides Kanban, shows Mind Map
+✅ Refresh page → selected view persists
+✅ Empty state shows mode descriptions
+
+---
+
+### December 30, 2024
+
 #### Dev Panel for Manual Verification ✅
 
 **Time:** Developer Tools
