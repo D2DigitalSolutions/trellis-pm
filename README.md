@@ -241,6 +241,39 @@ function MyComponent() {
 }
 ```
 
+## 💬 Branch Chat
+
+The Branch Chat feature allows users to send messages within work item branches. Messages are stored in the database and displayed in real-time.
+
+### Features
+
+- **Optimistic Updates**: Messages appear instantly while being sent to the server
+- **Auto-scroll**: Chat automatically scrolls to the latest message
+- **Loading States**: Visual feedback during message sending
+- **Error Handling**: Toast notifications on send failure with message recovery
+- **Keyboard Support**: Press Enter to send messages
+
+### Usage
+
+```tsx
+import { useMessages, useAppendMessage } from "@/lib/hooks";
+
+function ChatComponent({ branchId }: { branchId: string }) {
+  const { data, isLoading } = useMessages(branchId);
+  const appendMessage = useAppendMessage();
+
+  const handleSend = async (content: string) => {
+    await appendMessage.mutateAsync({
+      branchId,
+      content,
+      role: "USER",
+    });
+  };
+
+  // ...
+}
+```
+
 ## 📝 License
 
 MIT License - feel free to use this project for your own purposes.

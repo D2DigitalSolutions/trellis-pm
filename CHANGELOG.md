@@ -6,6 +6,52 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ## 📅 Development Timeline
 
+### December 30, 2024
+
+#### Branch Chat Message Sending Fix ✅
+
+**Time:** Acceptance Fix
+
+**Issue:** The `BranchChat` component's message input was clearing state on Enter but not actually sending messages to the server.
+
+**Changes Made:**
+
+1. **Message Sending Implementation (`src/components/panel/branch-panel.tsx`)**
+   - Added `useAppendMessage` hook for tRPC mutation
+   - Implemented `handleSendMessage` function that:
+     - Creates optimistic message for instant UI feedback
+     - Calls `appendMessage.mutateAsync()` with branchId, content, role: "USER"
+     - Removes optimistic message and refetches on success
+     - Shows error toast and restores message content on failure
+
+2. **Optimistic Updates**
+   - Added `OptimisticMessage` interface for temporary message display
+   - Combined real messages with optimistic messages in render
+   - Visual distinction for pending messages (opacity + spinner)
+
+3. **Loading States**
+   - Input field disabled while sending
+   - Button shows spinner during send
+   - Added `Loader2` spinner to loading indicator
+
+4. **Error Handling**
+   - Toast notification on send failure using `sonner`
+   - Message content restored to input on error for retry
+   - Descriptive error messages
+
+5. **UX Improvements**
+   - Auto-scroll to bottom on new messages
+   - Focus returns to input after sending
+   - Keyboard support (Enter to send)
+   - Send button icon changed from `MessageSquare` to `Send`
+
+**Files Modified:**
+- `src/components/panel/branch-panel.tsx`
+- `README.md` (added Branch Chat documentation)
+- `CHANGELOG.md` (this entry)
+
+---
+
 ### December 29, 2024
 
 #### Mode Templates Implementation ✅

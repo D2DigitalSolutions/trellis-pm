@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   GitBranch,
   MessageSquare,
@@ -15,6 +15,8 @@ import {
   BookOpen,
   Lightbulb,
   Target,
+  Loader2,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,7 +30,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { useBranches, useMessages, useArtifactList } from "@/lib/hooks";
+import { useBranches, useMessages, useArtifactList, useAppendMessage } from "@/lib/hooks";
+import { toast } from "sonner";
 
 // ============================================
 // Types
@@ -131,18 +134,108 @@ function BranchList({
 }
 
 // ============================================
+// Optimistic Message Type
+// ============================================
+
+interface OptimisticMessage {
+  id: string;
+  role: "USER" | "ASSISTANT" | "TOOL" | "SYSTEM";
+  content: string;
+  createdAt: Date;
+  isOptimistic?: boolean;
+}
+
+// ============================================
 // Branch Chat
 // ============================================
 
 function BranchChat({ branchId }: { branchId: string }) {
-  const { data, isLoading } = useMessages(branchId);
+  const { data, isLoading, refetch } = useMessages(branchId);
   const [newMessage, setNewMessage] = useState("");
+  const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  
+  const appendMessage = useAppendMessage();
+  const isSending = appendMessage.isPending;
   
   const messagesList = data?.messages || [];
+  
+  // Combine real messages with optimistic ones
+  const allMessages: OptimisticMessage[] = [
+    ...messagesList.map((m) => ({
+      id: m.id,
+      role: m.role as "USER" | "ASSISTANT" | "TOOL" | "SYSTEM",
+      content: m.content,
+      createdAt: new Date(m.createdAt),
+      isOptimistic: false,
+    })),
+    ...optimisticMessages,
+  ];
+  
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [allMessages.length]);
+  
+  // Handle message send
+  const handleSendMessage = async () => {
+    const content = newMessage.trim();
+    if (!content || isSending) return;
+    
+    // Create optimistic message
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: OptimisticMessage = {
+      id: optimisticId,
+      role: "USER",
+      content,
+      createdAt: new Date(),
+      isOptimistic: true,
+    };
+    
+    // Add optimistic message immediately
+    setOptimisticMessages((prev) => [...prev, optimisticMsg]);
+    setNewMessage("");
+    
+    // Focus back on input
+    inputRef.current?.focus();
+    
+    try {
+      await appendMessage.mutateAsync({
+        branchId,
+        content,
+        role: "USER",
+      });
+      
+      // Remove optimistic message after successful append (cache will be updated)
+      setOptimisticMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      
+      // Refetch to ensure we have the latest messages
+      await refetch();
+    } catch (error) {
+      // Remove optimistic message on error
+      setOptimisticMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      
+      // Show error toast
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message";
+      toast.error("Failed to send message", {
+        description: errorMessage,
+      });
+      
+      // Restore the message content so user can retry
+      setNewMessage(content);
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
         Loading messages...
       </div>
     );
@@ -150,19 +243,20 @@ function BranchChat({ branchId }: { branchId: string }) {
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
-          {messagesList.length === 0 ? (
+          {allMessages.length === 0 ? (
             <div className="text-center text-slate-500 text-sm py-8">
               No messages yet. Start a conversation!
             </div>
           ) : (
-            messagesList.map((message) => (
+            allMessages.map((message) => (
               <div
                 key={message.id}
                 className={cn(
                   "flex gap-3",
-                  message.role === "USER" ? "justify-end" : "justify-start"
+                  message.role === "USER" ? "justify-end" : "justify-start",
+                  message.isOptimistic && "opacity-70"
                 )}
               >
                 <div
@@ -182,12 +276,18 @@ function BranchChat({ branchId }: { branchId: string }) {
                   )}
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   <div className="flex items-center justify-end gap-2 mt-1">
-                    <Clock className="w-3 h-3 text-slate-500" />
+                    {message.isOptimistic ? (
+                      <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
+                    ) : (
+                      <Clock className="w-3 h-3 text-slate-500" />
+                    )}
                     <span className="text-[10px] text-slate-500">
-                      {new Date(message.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {message.isOptimistic
+                        ? "Sending..."
+                        : new Date(message.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                     </span>
                   </div>
                 </div>
@@ -201,23 +301,30 @@ function BranchChat({ branchId }: { branchId: string }) {
       <div className="p-4 border-t border-white/5">
         <div className="flex gap-2">
           <Input
+            ref={inputRef}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500"
+            className="flex-1 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 disabled:opacity-50"
+            disabled={isSending}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && newMessage.trim()) {
-                // Handle send message
-                setNewMessage("");
+                e.preventDefault();
+                handleSendMessage();
               }
             }}
           />
           <Button
             size="icon"
-            className="bg-indigo-600 hover:bg-indigo-500"
-            disabled={!newMessage.trim()}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50"
+            disabled={!newMessage.trim() || isSending}
+            onClick={handleSendMessage}
           >
-            <MessageSquare className="w-4 h-4" />
+            {isSending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
       </div>
