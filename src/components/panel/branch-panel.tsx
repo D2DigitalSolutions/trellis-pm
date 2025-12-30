@@ -26,11 +26,27 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { useBranches, useMessages, useArtifactList, useAppendMessage } from "@/lib/hooks";
+import { 
+  useBranches, 
+  useMessages, 
+  useArtifactList, 
+  useAppendMessage,
+  useCreateBranch,
+  useForkBranchFromMessage,
+} from "@/lib/hooks";
 import { toast } from "sonner";
 
 // ============================================
@@ -134,6 +150,15 @@ function BranchList({
 }
 
 // ============================================
+// Helper Functions
+// ============================================
+
+function generateDefaultBranchName(prefix: string = "fork"): string {
+  const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, "").replace("T", "-");
+  return `${prefix}-${timestamp}`;
+}
+
+// ============================================
 // Optimistic Message Type
 // ============================================
 
@@ -146,18 +171,220 @@ interface OptimisticMessage {
 }
 
 // ============================================
+// Fork Dialog Component
+// ============================================
+
+interface ForkDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (name: string) => void;
+  isLoading: boolean;
+  defaultName: string;
+  messagePreview?: string;
+}
+
+function ForkDialog({ isOpen, onClose, onConfirm, isLoading, defaultName, messagePreview }: ForkDialogProps) {
+  const [branchName, setBranchName] = useState(defaultName);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset and focus when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setBranchName(defaultName);
+      setTimeout(() => inputRef.current?.select(), 100);
+    }
+  }, [isOpen, defaultName]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (branchName.trim()) {
+      onConfirm(branchName.trim());
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-slate-900 border-slate-700 text-white sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <GitFork className="w-5 h-5 text-indigo-400" />
+            Fork Branch
+          </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Create a new branch from this message. The new branch will include all messages up to this point.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {messagePreview && (
+          <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-sm text-slate-300 max-h-20 overflow-hidden">
+            <p className="line-clamp-2">{messagePreview}</p>
+          </div>
+        )}
+        
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="branch-name" className="text-slate-300">Branch Name</Label>
+            <Input
+              ref={inputRef}
+              id="branch-name"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              placeholder="Enter branch name..."
+              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!branchName.trim() || isLoading}
+              className="bg-indigo-600 hover:bg-indigo-500"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <GitFork className="w-4 h-4 mr-2" />
+                  Create Fork
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================
+// Create Branch Dialog Component
+// ============================================
+
+interface CreateBranchDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (name: string) => void;
+  isLoading: boolean;
+}
+
+function CreateBranchDialog({ isOpen, onClose, onConfirm, isLoading }: CreateBranchDialogProps) {
+  const [branchName, setBranchName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Reset and focus when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setBranchName(generateDefaultBranchName("branch"));
+      setTimeout(() => inputRef.current?.select(), 100);
+    }
+  }, [isOpen]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (branchName.trim()) {
+      onConfirm(branchName.trim());
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-slate-900 border-slate-700 text-white sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <GitBranch className="w-5 h-5 text-indigo-400" />
+            Create New Branch
+          </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            Create a new empty branch for this work item.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-2">
+            <Label htmlFor="new-branch-name" className="text-slate-300">Branch Name</Label>
+            <Input
+              ref={inputRef}
+              id="new-branch-name"
+              value={branchName}
+              onChange={(e) => setBranchName(e.target.value)}
+              placeholder="Enter branch name..."
+              className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <DialogFooter className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!branchName.trim() || isLoading}
+              className="bg-indigo-600 hover:bg-indigo-500"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Branch
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================
 // Branch Chat
 // ============================================
 
-function BranchChat({ branchId }: { branchId: string }) {
+interface BranchChatProps {
+  branchId: string;
+  onForkSuccess?: (newBranchId: string) => void;
+}
+
+function BranchChat({ branchId, onForkSuccess }: BranchChatProps) {
   const { data, isLoading, refetch } = useMessages(branchId);
   const [newMessage, setNewMessage] = useState("");
   const [optimisticMessages, setOptimisticMessages] = useState<OptimisticMessage[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
+  // Fork dialog state
+  const [forkDialogOpen, setForkDialogOpen] = useState(false);
+  const [forkMessageId, setForkMessageId] = useState<string | null>(null);
+  const [forkMessagePreview, setForkMessagePreview] = useState<string>("");
+  
   const appendMessage = useAppendMessage();
+  const forkBranch = useForkBranchFromMessage();
   const isSending = appendMessage.isPending;
+  const isForking = forkBranch.isPending;
   
   const messagesList = data?.messages || [];
   
@@ -231,6 +458,44 @@ function BranchChat({ branchId }: { branchId: string }) {
       setNewMessage(content);
     }
   };
+  
+  // Handle fork button click
+  const handleForkClick = (messageId: string, messageContent: string) => {
+    setForkMessageId(messageId);
+    setForkMessagePreview(messageContent);
+    setForkDialogOpen(true);
+  };
+  
+  // Handle fork confirmation
+  const handleForkConfirm = async (name: string) => {
+    if (!forkMessageId) return;
+    
+    try {
+      const newBranch = await forkBranch.mutateAsync({
+        messageId: forkMessageId,
+        name,
+        copyMessages: true,
+      });
+      
+      setForkDialogOpen(false);
+      setForkMessageId(null);
+      setForkMessagePreview("");
+      
+      toast.success("Branch forked successfully", {
+        description: `Created new branch "${newBranch?.name || name}"`,
+      });
+      
+      // Notify parent to switch to the new branch
+      if (newBranch && onForkSuccess) {
+        onForkSuccess(newBranch.id);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to fork branch";
+      toast.error("Failed to fork branch", {
+        description: errorMessage,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -254,14 +519,14 @@ function BranchChat({ branchId }: { branchId: string }) {
               <div
                 key={message.id}
                 className={cn(
-                  "flex gap-3",
+                  "group flex gap-3",
                   message.role === "USER" ? "justify-end" : "justify-start",
                   message.isOptimistic && "opacity-70"
                 )}
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-lg px-4 py-2.5",
+                    "relative max-w-[85%] rounded-lg px-4 py-2.5",
                     message.role === "USER"
                       ? "bg-indigo-500/20 text-white"
                       : message.role === "ASSISTANT"
@@ -275,20 +540,39 @@ function BranchChat({ branchId }: { branchId: string }) {
                     </div>
                   )}
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <div className="flex items-center justify-end gap-2 mt-1">
-                    {message.isOptimistic ? (
-                      <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
-                    ) : (
-                      <Clock className="w-3 h-3 text-slate-500" />
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    {/* Fork button - visible on hover for non-optimistic messages */}
+                    {!message.isOptimistic && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-[10px] text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleForkClick(message.id, message.content);
+                        }}
+                        title="Fork from this message"
+                      >
+                        <GitFork className="w-3 h-3 mr-1" />
+                        Fork
+                      </Button>
                     )}
-                    <span className="text-[10px] text-slate-500">
-                      {message.isOptimistic
-                        ? "Sending..."
-                        : new Date(message.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                    </span>
+                    
+                    <div className="flex items-center gap-2 ml-auto">
+                      {message.isOptimistic ? (
+                        <Loader2 className="w-3 h-3 text-slate-500 animate-spin" />
+                      ) : (
+                        <Clock className="w-3 h-3 text-slate-500" />
+                      )}
+                      <span className="text-[10px] text-slate-500">
+                        {message.isOptimistic
+                          ? "Sending..."
+                          : new Date(message.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -328,6 +612,20 @@ function BranchChat({ branchId }: { branchId: string }) {
           </Button>
         </div>
       </div>
+      
+      {/* Fork Dialog */}
+      <ForkDialog
+        isOpen={forkDialogOpen}
+        onClose={() => {
+          setForkDialogOpen(false);
+          setForkMessageId(null);
+          setForkMessagePreview("");
+        }}
+        onConfirm={handleForkConfirm}
+        isLoading={isForking}
+        defaultName={generateDefaultBranchName("fork")}
+        messagePreview={forkMessagePreview}
+      />
     </div>
   );
 }
@@ -410,6 +708,47 @@ export function BranchPanel({
 }: BranchPanelProps) {
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("branches");
+  const [createBranchDialogOpen, setCreateBranchDialogOpen] = useState(false);
+  
+  const createBranch = useCreateBranch();
+  const { refetch: refetchBranches } = useBranches(workItemId);
+  
+  // Handle new branch creation
+  const handleCreateBranch = async (name: string) => {
+    try {
+      const newBranch = await createBranch.mutateAsync({
+        workItemId,
+        name,
+      });
+      
+      setCreateBranchDialogOpen(false);
+      
+      toast.success("Branch created successfully", {
+        description: `Created new branch "${newBranch.name}"`,
+      });
+      
+      // Refetch branches to update the list
+      await refetchBranches();
+      
+      // Select the new branch and switch to chat
+      setSelectedBranchId(newBranch.id);
+      setActiveTab("chat");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create branch";
+      toast.error("Failed to create branch", {
+        description: errorMessage,
+      });
+    }
+  };
+  
+  // Handle fork success - switch to the new branch
+  const handleForkSuccess = async (newBranchId: string) => {
+    // Refetch branches to get the new one
+    await refetchBranches();
+    
+    // Select the new branch
+    setSelectedBranchId(newBranchId);
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -456,9 +795,7 @@ export function BranchPanel({
                     setSelectedBranchId(id);
                     setActiveTab("chat");
                   }}
-                  onCreateBranch={() => {
-                    // Handle create branch
-                  }}
+                  onCreateBranch={() => setCreateBranchDialogOpen(true)}
                 />
               </div>
             </ScrollArea>
@@ -466,7 +803,10 @@ export function BranchPanel({
 
           <TabsContent value="chat" className="flex-1 m-0 overflow-hidden">
             {selectedBranchId ? (
-              <BranchChat branchId={selectedBranchId} />
+              <BranchChat 
+                branchId={selectedBranchId} 
+                onForkSuccess={handleForkSuccess}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
                 <GitBranch className="w-12 h-12 mb-3 text-slate-600" />
@@ -481,6 +821,14 @@ export function BranchPanel({
             </ScrollArea>
           </TabsContent>
         </Tabs>
+        
+        {/* Create Branch Dialog */}
+        <CreateBranchDialog
+          isOpen={createBranchDialogOpen}
+          onClose={() => setCreateBranchDialogOpen(false)}
+          onConfirm={handleCreateBranch}
+          isLoading={createBranch.isPending}
+        />
       </SheetContent>
     </Sheet>
   );

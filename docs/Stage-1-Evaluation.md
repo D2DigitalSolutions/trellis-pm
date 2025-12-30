@@ -15,7 +15,7 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | # | Gap | Severity | Impact |
 |---|-----|----------|--------|
 | **1** | **Rolling summary job has no trigger mechanism** | 🔴 High | `SummarizationService.summarizeBranch()` exists but is never auto-triggered after message creation. Summaries won't update without manual API calls. |
-| **2** | **Fork-from-message UI action not wired** | 🟡 Medium | `branch.forkFromMessage` tRPC mutation exists, but `BranchPanel` has no fork button on messages. The `onCreateBranch` handler is a no-op. |
+| **2** | ~~**Fork-from-message UI action not wired**~~ | ✅ Fixed | Fork button now appears on hover over messages. `onCreateBranch` opens a dialog and calls `branch.create`. Fork dialog calls `branch.forkFromMessage` with auto-switch to new branch. |
 | **3** | ~~**Message send not implemented in chat UI**~~ | ✅ Fixed | `BranchChat` now calls `message.append` mutation with optimistic updates, loading states, and error handling. |
 | **4** | **No authentication layer** | 🟡 Medium | All tRPC routes use `publicProcedure`. No session/auth context. `userId` must be passed manually which is insecure. |
 | **5** | **Context builder missing mode template prompt injection in extract-work** | 🟡 Medium | `ContextBuilder.formatContextAsString()` correctly includes `modeTemplate.aiSystemPrompt`, but `extractWork()` builds its own prompt and doesn't use the mode template's system prompt. |
@@ -190,7 +190,7 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | **Zod validation** | ✅ Full input/output schemas with enums |
 | **TODOs/Missing** | None |
 
-### C. Branch Create + Fork-from-Message ✅ (Backend) / ⚠️ (UI)
+### C. Branch Create + Fork-from-Message ✅
 
 | Aspect | Evidence |
 |--------|----------|
@@ -198,7 +198,8 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | **Routes** | `list`, `getByWorkItem`, `get`, `getById`, `create`, `forkFromMessage`, `update`, `setDefault`, `delete`, `restore` |
 | **How it works** | `forkFromMessage` finds message, creates new branch with `forkedFromId` + `forkPointMessageId`. Optionally copies messages up to fork point. |
 | **Zod validation** | ✅ Full schemas |
-| **TODOs/Missing** | **UI not wired**: `BranchPanel.tsx` line 352-354 has empty `onCreateBranch` handler. No fork button on individual messages. |
+| **UI** | ✅ `CreateBranchDialog` opens from "New Branch" button, calls `branch.create`. `ForkDialog` opens from fork button on messages, calls `branch.forkFromMessage`. Both auto-switch to new branch after success. |
+| **TODOs/Missing** | None |
 
 ### D. Messages Append + List ✅
 
@@ -559,7 +560,8 @@ async summarizeBranch(branchId: string): Promise<BranchSummary | null> {
 |----------|------|--------|--------|
 | ~~🔴 P0~~ | ~~Wire up message send in `BranchChat` component~~ | ~~30 min~~ | ✅ Done |
 | 🔴 P0 | Add `maybeSummarizeBranch()` call after `message.append` mutation | 15 min | Pending |
-| 🟡 P1 | Add fork button on messages in `BranchPanel` | 1 hr | Pending |
+| ~~🟡 P1~~ | ~~Add fork button on messages in `BranchPanel`~~ | ~~1 hr~~ | ✅ Done |
+| ~~🟡 P1~~ | ~~Wire up `onCreateBranch` handler~~ | ~~30 min~~ | ✅ Done |
 | 🟡 P1 | Inject mode template prompt into `extractWork()` system prompt | 30 min | Pending |
 | 🟢 P2 | Add mode template selector to project creation UI | 2 hr | Pending |
 | 🟢 P2 | Add basic authentication (NextAuth or similar) | 4 hr | Pending |

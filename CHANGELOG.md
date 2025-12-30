@@ -8,6 +8,51 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 30, 2024
 
+#### Fork-from-Message UI & Branch Creation ✅
+
+**Time:** Acceptance Fix
+
+**Issue:** The `BranchPanel` had a no-op `onCreateBranch` handler and no UI for forking from messages.
+
+**Changes Made:**
+
+1. **Fork Dialog Component**
+   - New `ForkDialog` component with branch name input
+   - Shows preview of the message being forked from
+   - Auto-generates default name: `fork-YYYYMMDD-HHmm`
+   - Loading state during fork operation
+
+2. **Create Branch Dialog Component**
+   - New `CreateBranchDialog` component for creating empty branches
+   - Auto-generates default name: `branch-YYYYMMDD-HHmm`
+   - Loading state during creation
+
+3. **Fork Button on Messages**
+   - Fork button appears on hover over any message (not just assistant)
+   - Positioned in message footer, left side
+   - Opens fork dialog with message preview
+
+4. **Branch Creation Wiring**
+   - `onCreateBranch` handler now opens the create branch dialog
+   - Calls `branch.create` tRPC mutation
+   - Auto-switches to new branch after creation
+   - Refetches branch list to show new branch
+
+5. **Fork Success Handling**
+   - After successful fork, auto-switches to the new branch
+   - Refetches branch list to include the forked branch
+   - Toast notification confirms success
+
+6. **Helper Functions**
+   - `generateDefaultBranchName(prefix)` - creates timestamped branch names
+
+**Files Modified:**
+- `src/components/panel/branch-panel.tsx`
+- `README.md` (added Branch Management documentation)
+- `CHANGELOG.md` (this entry)
+
+---
+
 #### Branch Chat Message Sending Fix ✅
 
 **Time:** Acceptance Fix

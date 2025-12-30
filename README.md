@@ -274,6 +274,60 @@ function ChatComponent({ branchId }: { branchId: string }) {
 }
 ```
 
+## 🌿 Branch Management
+
+The Branch Panel supports creating new branches and forking from messages.
+
+### Creating a New Branch
+
+```tsx
+import { useCreateBranch } from "@/lib/hooks";
+
+function BranchManager({ workItemId }: { workItemId: string }) {
+  const createBranch = useCreateBranch();
+
+  const handleCreate = async (name: string) => {
+    const newBranch = await createBranch.mutateAsync({
+      workItemId,
+      name,
+    });
+    console.log("Created branch:", newBranch.id);
+  };
+
+  // ...
+}
+```
+
+### Forking from a Message
+
+Fork creates a new branch that includes all messages up to the selected message:
+
+```tsx
+import { useForkBranchFromMessage } from "@/lib/hooks";
+
+function MessageActions({ messageId }: { messageId: string }) {
+  const forkBranch = useForkBranchFromMessage();
+
+  const handleFork = async () => {
+    const newBranch = await forkBranch.mutateAsync({
+      messageId,
+      name: `fork-${Date.now()}`,
+      copyMessages: true, // Include messages up to fork point
+    });
+    console.log("Forked to branch:", newBranch?.id);
+  };
+
+  // ...
+}
+```
+
+### UI Features
+
+- **Branch List**: View all branches for a work item with fork indicators
+- **Create Branch Button**: Opens dialog to create a new empty branch
+- **Fork Button**: Appears on hover over messages in the chat
+- **Auto-switch**: After creating/forking, automatically switches to the new branch
+
 ## 📝 License
 
 MIT License - feel free to use this project for your own purposes.
