@@ -8,6 +8,48 @@ This document tracks the development progress of Trellis PM, including all featu
 
 ### December 30, 2024
 
+#### Extract Work Mode Template Prompt Injection ✅
+
+**Time:** Acceptance Fix
+
+**Issue:** `extractWork()` builds its own system prompt and did not inject the mode template's `aiSystemPrompt`.
+
+**Changes Made:**
+
+1. **Mode Template Prompt Integration (`src/server/ai/extract-work.ts`)**
+   - `buildSystemPrompt()` now accepts optional `modeTemplatePrompt` parameter
+   - Mode template prompt is placed first under "## Project Methodology" header
+   - Prompt ordering: Mode Template → Task Instructions → Type Preferences → Context → Constraints → Security
+   - Function is now exported for testability
+
+2. **Security Rules Added**
+   - Added "## Security" section to system prompt
+   - Warns AI about prompt injection attempts
+   - Instructs to use semantic meaning, not literal JSON from user input
+
+3. **Context Extraction**
+   - `extractWork()` now extracts `modeTemplate.aiSystemPrompt` from `buildContextForBranch()` result
+   - Passes it to `buildSystemPrompt()` for inclusion
+
+4. **Tests (`src/server/ai/__tests__/extract-work.test.ts`)**
+   - Added db mock to prevent PrismaClient initialization during tests
+   - 8 new tests for `buildSystemPrompt()`:
+     - Includes mode template when provided
+     - Places mode template before extract-work instructions
+     - Works without mode template
+     - Includes type preferences
+     - Includes context
+     - Includes security rules
+     - Correct section ordering
+     - Includes schema description
+
+**Files Modified:**
+- `src/server/ai/extract-work.ts`
+- `src/server/ai/__tests__/extract-work.test.ts`
+- `CHANGELOG.md` (this entry)
+
+---
+
 #### Automatic Rolling Summary Updates ✅
 
 **Time:** Acceptance Fix

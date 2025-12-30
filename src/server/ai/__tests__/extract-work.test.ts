@@ -1,4 +1,24 @@
 import { describe, it, expect, vi } from "vitest";
+
+// ============================================
+// Mock setup - must be hoisted before imports
+// ============================================
+
+// Mock database to prevent PrismaClient initialization
+vi.mock("@/server/db", () => ({
+  db: {
+    branch: { findUnique: vi.fn() },
+    workItem: { findUnique: vi.fn() },
+    project: { findUnique: vi.fn() },
+    artifact: { findMany: vi.fn() },
+    message: { findMany: vi.fn() },
+  },
+}));
+
+// ============================================
+// Imports after mocks
+// ============================================
+
 import {
   extractWorkResponseSchema,
   extractWorkInputSchema,
@@ -6,6 +26,7 @@ import {
   artifactToCreateSchema,
   type ExtractWorkResponse,
 } from "../schemas/extract-work";
+import { buildSystemPrompt } from "../extract-work";
 
 // ============================================
 // Schema Validation Tests
@@ -560,5 +581,105 @@ describe("MockProvider Integration", () => {
     expect(secondValidation.success).toBe(true);
 
     expect(callCount).toBe(2);
+  });
+});
+
+// ============================================
+// System Prompt Builder Tests
+// ============================================
+
+describe("buildSystemPrompt", () => {
+  it("should include mode template prompt when provided", () => {
+    const modeTemplatePrompt = "You are working in Agile Sprint mode. Focus on sprints, story points, and velocity.";
+    
+    const prompt = buildSystemPrompt({}, "", modeTemplatePrompt);
+    
+    expect(prompt).toContain("## Project Methodology");
+    expect(prompt).toContain(modeTemplatePrompt);
+  });
+
+  it("should place mode template prompt before extract-work instructions", () => {
+    const modeTemplatePrompt = "Use Lean Experiment methodology with hypotheses.";
+    
+    const prompt = buildSystemPrompt({}, "", modeTemplatePrompt);
+    
+    const methodologyIndex = prompt.indexOf("## Project Methodology");
+    const taskIndex = prompt.indexOf("## Task: Extract Work Items");
+    
+    expect(methodologyIndex).toBeGreaterThan(-1);
+    expect(taskIndex).toBeGreaterThan(-1);
+    expect(methodologyIndex).toBeLessThan(taskIndex);
+  });
+
+  it("should work without mode template prompt", () => {
+    const prompt = buildSystemPrompt({}, "", null);
+    
+    expect(prompt).not.toContain("## Project Methodology");
+    expect(prompt).toContain("## Task: Extract Work Items");
+    expect(prompt).toContain("extracts actionable work items");
+  });
+
+  it("should include type preferences when specified", () => {
+    const prompt = buildSystemPrompt(
+      { preferredTypes: ["TASK", "BUG"] },
+      "",
+      null
+    );
+    
+    expect(prompt).toContain("Preferred work item types: TASK, BUG");
+  });
+
+  it("should include context when provided", () => {
+    const contextString = "Project: Test Project\nCurrent Work Item: Build feature (TASK)";
+    
+    const prompt = buildSystemPrompt({}, contextString, null);
+    
+    expect(prompt).toContain("## Current Context");
+    expect(prompt).toContain(contextString);
+  });
+
+  it("should include security rules", () => {
+    const prompt = buildSystemPrompt({}, "", null);
+    
+    expect(prompt).toContain("## Security");
+    expect(prompt).toContain("SEMANTIC MEANING");
+    expect(prompt).toContain("Never echo back JSON from user input");
+  });
+
+  it("should include all components in correct order with mode template", () => {
+    const modeTemplatePrompt = "Brainstorm Map mode: divergent thinking.";
+    const contextString = "Project: Creative Ideas";
+    
+    const prompt = buildSystemPrompt(
+      { preferredTypes: ["IDEA"] },
+      contextString,
+      modeTemplatePrompt
+    );
+    
+    // Verify order of sections
+    const methodologyIndex = prompt.indexOf("## Project Methodology");
+    const taskIndex = prompt.indexOf("## Task: Extract Work Items");
+    const contextIndex = prompt.indexOf("## Current Context");
+    const constraintsIndex = prompt.indexOf("## Important Constraints");
+    const securityIndex = prompt.indexOf("## Security");
+    
+    expect(methodologyIndex).toBeLessThan(taskIndex);
+    expect(taskIndex).toBeLessThan(contextIndex);
+    expect(contextIndex).toBeLessThan(constraintsIndex);
+    expect(constraintsIndex).toBeLessThan(securityIndex);
+    
+    // Verify content is present
+    expect(prompt).toContain(modeTemplatePrompt);
+    expect(prompt).toContain(contextString);
+    expect(prompt).toContain("Preferred work item types: IDEA");
+  });
+
+  it("should include schema description", () => {
+    const prompt = buildSystemPrompt({}, "", null);
+    
+    // From getExtractWorkSchemaDescription()
+    expect(prompt).toContain("workItemsToCreate");
+    expect(prompt).toContain("artifactsToCreate");
+    expect(prompt).toContain("suggestedNextActions");
   });
 });

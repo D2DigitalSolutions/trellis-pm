@@ -18,7 +18,7 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | **2** | ~~**Fork-from-message UI action not wired**~~ | ✅ Fixed | Fork button now appears on hover over messages. `onCreateBranch` opens a dialog and calls `branch.create`. Fork dialog calls `branch.forkFromMessage` with auto-switch to new branch. |
 | **3** | ~~**Message send not implemented in chat UI**~~ | ✅ Fixed | `BranchChat` now calls `message.append` mutation with optimistic updates, loading states, and error handling. |
 | **4** | **No authentication layer** | 🟡 Medium | All tRPC routes use `publicProcedure`. No session/auth context. `userId` must be passed manually which is insecure. |
-| **5** | **Context builder missing mode template prompt injection in extract-work** | 🟡 Medium | `ContextBuilder.formatContextAsString()` correctly includes `modeTemplate.aiSystemPrompt`, but `extractWork()` builds its own prompt and doesn't use the mode template's system prompt. |
+| **5** | ~~**Context builder missing mode template prompt injection in extract-work**~~ | ✅ Fixed | `extractWork()` now retrieves `modeTemplate.aiSystemPrompt` from context and places it first in the system prompt under "## Project Methodology". |
 
 ---
 
@@ -275,9 +275,11 @@ The codebase implements the **core MVP architecture** but has **5 critical gaps*
 | **Input** | `{ branchId, userText, options? }` validated by `extractWorkInputSchema` |
 | **Output** | `{ workItemsToCreate[], artifactsToCreate[], suggestedNextActions[] }` |
 | **Service** | `src/server/ai/extract-work.ts` uses `buildContextForBranch()`, `generateStructured()` |
+| **Mode template** | ✅ `extractWork()` retrieves `modeTemplate.aiSystemPrompt` from context and places it first in system prompt |
 | **Retry/repair** | Base provider handles retry with validation feedback; `repairExtractWorkJson()` for JSON cleanup |
-| **Tests** | `src/server/ai/__tests__/extract-work.test.ts` with schema validation + mock provider tests |
-| **TODOs/Missing** | Doesn't inject mode template `aiSystemPrompt` (uses generic system prompt) |
+| **Security** | ✅ System prompt includes security rules against prompt injection |
+| **Tests** | `src/server/ai/__tests__/extract-work.test.ts` with schema validation, mock provider, and prompt builder tests (38 tests) |
+| **TODOs/Missing** | None |
 
 ### K. UI: Sidebar, Board, Branch Panel ✅ (Structure) / ⚠️ (Functionality)
 
@@ -566,7 +568,7 @@ async summarizeBranch(branchId: string): Promise<BranchSummary | null> {
 | ~~🔴 P0~~ | ~~Add `maybeSummarizeBranch()` call after `message.append` mutation~~ | ~~15 min~~ | ✅ Done |
 | ~~🟡 P1~~ | ~~Add fork button on messages in `BranchPanel`~~ | ~~1 hr~~ | ✅ Done |
 | ~~🟡 P1~~ | ~~Wire up `onCreateBranch` handler~~ | ~~30 min~~ | ✅ Done |
-| 🟡 P1 | Inject mode template prompt into `extractWork()` system prompt | 30 min | Pending |
+| ~~🟡 P1~~ | ~~Inject mode template prompt into `extractWork()` system prompt~~ | ~~30 min~~ | ✅ Done |
 | 🟢 P2 | Add mode template selector to project creation UI | 2 hr | Pending |
 | 🟢 P2 | Add basic authentication (NextAuth or similar) | 4 hr | Pending |
 
