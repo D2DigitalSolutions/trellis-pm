@@ -10,6 +10,7 @@ import { PanelRightOpen, Layers, LayoutGrid, Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReactFlowProvider } from "reactflow";
 
 // ============================================
 // Types
@@ -218,10 +219,14 @@ export function DashboardLayout({ initialProjectId }: DashboardLayoutProps) {
                 onWorkItemSelect={handleWorkItemSelect}
               />
             ) : (
-              <MindMapView
-                projectId={selectedProjectId}
-                parentWorkItemId={parentWorkItemId}
-              />
+              <ReactFlowProvider>
+                <MindMapView
+                  projectId={selectedProjectId}
+                  parentWorkItemId={parentWorkItemId}
+                  selectedWorkItemId={selectedWorkItemId}
+                  onWorkItemSelect={handleWorkItemSelect}
+                />
+              </ReactFlowProvider>
             )
           ) : (
             <EmptyState />
